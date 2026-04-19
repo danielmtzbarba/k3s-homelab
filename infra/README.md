@@ -23,7 +23,7 @@ Use this progression:
 
 1. `infra/terraform/bootstrap/`
 2. `infra/terraform/server/`
-3. `infra/terraform/network/` or `infra/terraform/dev/` when the scope grows
+3. `infra/terraform/worker/`
 4. modules only after repetition becomes real
 
 Do not start with deep nesting for a single VM lab.

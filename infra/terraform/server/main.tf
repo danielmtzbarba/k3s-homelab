@@ -15,7 +15,7 @@ resource "google_compute_firewall" "ssh" {
   name          = "${var.network_name}-allow-ssh"
   network       = google_compute_network.server.name
   source_ranges = [var.ssh_source_range]
-  target_tags   = [var.server_tag]
+  target_tags   = [var.cluster_tag]
 
   allow {
     protocol = "tcp"
@@ -26,12 +26,29 @@ resource "google_compute_firewall" "ssh" {
 resource "google_compute_firewall" "k3s_api" {
   name          = "${var.network_name}-allow-k3s-api"
   network       = google_compute_network.server.name
-  source_ranges = [var.ssh_source_range]
+  source_ranges = [var.ssh_source_range, var.subnet_cidr]
   target_tags   = [var.server_tag]
 
   allow {
     protocol = "tcp"
     ports    = ["6443"]
+  }
+}
+
+resource "google_compute_firewall" "node_internal" {
+  name          = "${var.network_name}-allow-node-internal"
+  network       = google_compute_network.server.name
+  source_ranges = [var.subnet_cidr]
+  target_tags   = [var.cluster_tag]
+
+  allow {
+    protocol = "tcp"
+    ports    = ["2379-2380", "10250", "30000-32767"]
+  }
+
+  allow {
+    protocol = "udp"
+    ports    = ["8472", "51820", "51821"]
   }
 }
 
@@ -73,7 +90,7 @@ resource "google_compute_instance" "server" {
   name         = var.server_name
   zone         = var.zone
   machine_type = var.machine_type
-  tags         = [var.server_tag]
+  tags         = [var.cluster_tag, var.server_tag]
 
   metadata = {
     ssh-keys = "${var.ssh_user}:${var.ssh_public_key}"

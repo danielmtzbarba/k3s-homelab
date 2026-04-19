@@ -19,30 +19,29 @@ if [[ -z "${SSH_PUBLIC_KEY_PATH:-}" || ! -f "${SSH_PUBLIC_KEY_PATH}" ]]; then
 fi
 
 SSH_PUBLIC_KEY="$(tr -d '\n' < "${SSH_PUBLIC_KEY_PATH}")"
+WORKER_PREFIX="${TF_STATE_WORKER_PREFIX:-worker}"
+CLUSTER_NODE_TAG="${CLUSTER_TAG:-${SERVER_TAG}}"
 
 cat > terraform.auto.tfvars <<EOF
-project_id       = "${PROJECT_ID}"
-region           = "${REGION}"
-zone             = "${ZONE}"
-network_name     = "${NETWORK_NAME}"
-subnet_name      = "${SUBNET_NAME}"
-subnet_cidr      = "${SUBNET_CIDR}"
-cluster_tag      = "${CLUSTER_TAG:-$SERVER_TAG}"
-server_name      = "${SERVER_NAME}"
-server_tag       = "${SERVER_TAG}"
-address_name     = "${ADDRESS_NAME}"
-machine_type     = "${MACHINE_TYPE}"
-image_family     = "${IMAGE_FAMILY}"
-image_project    = "${IMAGE_PROJECT}"
-ssh_source_range = "${SSH_SOURCE_RANGE}"
-ssh_user         = "${SSH_USER}"
-ssh_public_key   = "${SSH_PUBLIC_KEY}"
+project_id        = "${PROJECT_ID}"
+region            = "${REGION}"
+zone              = "${ZONE}"
+network_name      = "${NETWORK_NAME}"
+subnet_name       = "${SUBNET_NAME}"
+cluster_tag       = "${CLUSTER_NODE_TAG}"
+worker_name       = "${WORKER_NAME}"
+worker_tag        = "${WORKER_TAG}"
+machine_type      = "${WORKER_MACHINE_TYPE}"
+image_family      = "${IMAGE_FAMILY}"
+image_project     = "${IMAGE_PROJECT}"
+ssh_user          = "${SSH_USER}"
+ssh_public_key    = "${SSH_PUBLIC_KEY}"
 boot_disk_size_gb = ${BOOT_DISK_SIZE_GB}
 EOF
 
 cat > backend.hcl <<EOF
 bucket = "${TF_STATE_BUCKET}"
-prefix = "${TF_STATE_PREFIX}"
+prefix = "${WORKER_PREFIX}"
 EOF
 
 echo "Generated terraform.auto.tfvars and backend.hcl in $(pwd)"

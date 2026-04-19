@@ -6,6 +6,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 BOOTSTRAP_DIR="${ROOT_DIR}/infra/terraform/bootstrap"
 SERVER_DIR="${ROOT_DIR}/infra/terraform/server"
+WORKER_DIR="${ROOT_DIR}/infra/terraform/worker"
 
 usage() {
   cat <<'EOF'
@@ -15,6 +16,7 @@ Usage:
   sh scripts/infra.sh apply
   sh scripts/infra.sh kubeconfig
   sh scripts/infra.sh destroy
+  sh scripts/infra.sh worker-destroy
   sh scripts/infra.sh destroy-backend
   sh scripts/infra.sh nuke
   sh scripts/infra.sh status
@@ -25,8 +27,9 @@ Commands:
   apply           Generate server Terraform inputs and run terraform apply.
   kubeconfig      Fetch kubeconfig from the server and rewrite it for local use.
   destroy         Destroy the server infrastructure stack.
+  worker-destroy  Destroy the worker infrastructure stack.
   destroy-backend Destroy the backend bucket stack.
-  nuke            Destroy server infrastructure and then the backend bucket stack.
+  nuke            Destroy worker, server, and then the backend bucket stack.
   status          Show a high-level status view of both Terraform stacks.
 EOF
 }
@@ -121,6 +124,14 @@ run_destroy_server() {
   terraform destroy
 }
 
+run_destroy_worker() {
+  echo "Destroying worker infrastructure..."
+  cd "${WORKER_DIR}"
+  sh ./generate_tf_files.sh
+  terraform_init_remote
+  terraform destroy
+}
+
 run_destroy_backend() {
   echo "Destroying backend bucket infrastructure..."
   cd "${BOOTSTRAP_DIR}"
@@ -131,10 +142,11 @@ run_destroy_backend() {
 
 run_nuke() {
   echo "This will destroy:"
+  echo "  - the worker infrastructure stack"
   echo "  - the server infrastructure stack"
   echo "  - the Terraform backend bucket stack"
   echo
-  echo "This removes the VM, network resources, static IP, and the backend state bucket."
+  echo "This removes the worker VM, server VM, network resources, static IP, and the backend state bucket."
   echo "Type 'nuke' to continue:"
   printf "> "
   read -r CONFIRM
@@ -144,6 +156,7 @@ run_nuke() {
     exit 1
   fi
 
+  run_destroy_worker
   run_destroy_server
   run_destroy_backend
 }
@@ -172,8 +185,22 @@ run_status() {
   fi
   echo
 
+  echo "Worker stack:"
+  cd "${WORKER_DIR}"
+  sh ./generate_tf_files.sh >/dev/null
+  if terraform_init_remote >/dev/null 2>&1; then
+    terraform state list 2>/dev/null || true
+  else
+    echo "  backend not ready or not initialized yet"
+  fi
+  echo
+
   echo "GCE instances:"
-  gcloud compute instances list --filter="name=${SERVER_NAME}" || true
+  if [ -n "${WORKER_NAME:-}" ]; then
+    gcloud compute instances list --filter="name=(${SERVER_NAME} ${WORKER_NAME})" || true
+  else
+    gcloud compute instances list --filter="name=${SERVER_NAME}" || true
+  fi
 }
 
 main() {
@@ -200,6 +227,9 @@ main() {
       ;;
     destroy)
       run_destroy_server
+      ;;
+    worker-destroy)
+      run_destroy_worker
       ;;
     destroy-backend)
       run_destroy_backend

@@ -34,7 +34,7 @@ For a full reset test, there is also:
 sh scripts/infra.sh nuke
 ```
 
-That destroys both the server stack and the backend bucket stack, in the correct order.
+That destroys the worker stack, the server stack, and the backend bucket stack, in the correct order.
 
 ## 1. Create a GCP Project
 
@@ -105,7 +105,7 @@ REGION="europe-west3"
 ZONE="europe-west3-a"
 NETWORK_NAME="k3s-lab"
 SUBNET_NAME="k3s-lab-subnet"
-SUBNET_CIDR="10.42.0.0/24"
+SUBNET_CIDR="10.10.0.0/24"
 SERVER_NAME="k3s-server-1"
 SERVER_TAG="k3s-server"
 ADDRESS_NAME="k3s-server-ip"
@@ -131,6 +131,7 @@ Notes:
 - for Frankfurt, use `EUROPE-WEST3`
 - `90` days is a good default for old Terraform state object versions if you later enable cleanup
 - keep `TF_STATE_FORCE_DESTROY="false"` unless you intentionally want full bucket teardown
+- do not use `10.42.0.0/24` for the VM subnet because k3s uses `10.42.0.0/16` for pod networking by default
 
 If you do not know your public IP:
 
@@ -281,6 +282,13 @@ This stack creates:
 - static external IP
 - VM service account
 - single Ubuntu VM
+
+Firewall intent:
+
+- `22/tcp` from your `SSH_SOURCE_RANGE`
+- `6443/tcp` from your `SSH_SOURCE_RANGE` and from the VPC subnet so workers can join
+- inter-node cluster ports only from inside the subnet
+- `80/443` publicly for ingress testing
 
 If `compute.googleapis.com` was just enabled, wait a minute or two before retrying Terraform if GCP still reports it as disabled.
 

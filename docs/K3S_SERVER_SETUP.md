@@ -13,6 +13,12 @@ Scope:
 
 No worker node. No application services.
 
+Important:
+
+- your VM subnet must not overlap with k3s default pod networking
+- avoid `10.42.0.0/24` as the GCP subnet because k3s uses `10.42.0.0/16` by default
+- a safe learning subnet is `10.10.0.0/24`
+
 ## 1. SSH Into the Server
 
 From your local machine:

@@ -14,37 +14,27 @@ variable "zone" {
 }
 
 variable "network_name" {
-  description = "Custom VPC network name."
+  description = "Existing VPC network name."
   type        = string
 }
 
 variable "subnet_name" {
-  description = "Subnet name."
-  type        = string
-}
-
-variable "subnet_cidr" {
-  description = "Subnet CIDR range."
+  description = "Existing subnet name."
   type        = string
 }
 
 variable "cluster_tag" {
-  description = "Shared network tag applied to all k3s nodes."
+  description = "Shared cluster network tag."
   type        = string
 }
 
-variable "server_name" {
-  description = "Compute Engine instance name."
+variable "worker_name" {
+  description = "Compute Engine instance name for the worker."
   type        = string
 }
 
-variable "server_tag" {
-  description = "Network tag applied to the server."
-  type        = string
-}
-
-variable "address_name" {
-  description = "Static external IP resource name."
+variable "worker_tag" {
+  description = "Network tag for the worker."
   type        = string
 }
 
@@ -63,17 +53,6 @@ variable "image_project" {
   type        = string
 }
 
-variable "ssh_source_range" {
-  description = "CIDR allowed to SSH and reach the k3s API."
-  type        = string
-}
-
-variable "boot_disk_size_gb" {
-  description = "Boot disk size in GB."
-  type        = number
-  default     = 40
-}
-
 variable "ssh_user" {
   description = "Linux username used for SSH metadata."
   type        = string
@@ -83,4 +62,10 @@ variable "ssh_public_key" {
   description = "SSH public key contents for instance access."
   type        = string
   sensitive   = true
+}
+
+variable "boot_disk_size_gb" {
+  description = "Boot disk size in GB."
+  type        = number
+  default     = 40
 }
