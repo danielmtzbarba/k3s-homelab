@@ -3,3 +3,4 @@ tf_state_bucket             = "your-project-id-k3s-homelab-tfstate"
 tf_state_location           = "europe-west3"
 delete_old_versions         = false
 noncurrent_version_age_days = 90
+force_destroy               = false

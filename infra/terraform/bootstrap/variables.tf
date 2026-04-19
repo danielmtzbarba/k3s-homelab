@@ -24,3 +24,9 @@ variable "noncurrent_version_age_days" {
   type        = number
   default     = 90
 }
+
+variable "force_destroy" {
+  description = "Whether Terraform may delete a non-empty backend bucket."
+  type        = bool
+  default     = false
+}

@@ -68,6 +68,7 @@ The script:
 - changes the default shell to `zsh` with `sudo usermod`
 - persists `overlay` and `br_netfilter` module loading
 - persists the required k3s sysctl settings
+- configures `tls-san` for the server public IP when available
 - persists the `TERM` setting in `~/.zshrc`
 - adds `alias k=kubectl`
 - installs k3s
@@ -96,6 +97,13 @@ net.bridge.bridge-nf-call-iptables=1
 net.bridge.bridge-nf-call-ip6tables=1
 EOF"
 sudo sysctl --system
+PUBLIC_IP="$(curl -fsS -H 'Metadata-Flavor: Google' \
+  http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)"
+sudo mkdir -p /etc/rancher/k3s/config.yaml.d
+sudo sh -c "cat > /etc/rancher/k3s/config.yaml.d/10-public-ip.yaml <<EOF
+tls-san:
+  - \"${PUBLIC_IP}\"
+EOF"
 echo 'export TERM=xterm-256color' >> ~/.zshrc
 curl -sfL https://get.k3s.io | sh -
 ```
@@ -132,6 +140,27 @@ sudo ss -lntp | grep 6443
 You should see the Kubernetes API listening on `6443`.
 
 ## 8. Retrieve the kubeconfig
+
+Automated option from your local machine:
+
+```bash
+chmod +x scripts/fetch_kubeconfig.sh
+sh scripts/fetch_kubeconfig.sh
+```
+
+That script:
+
+- reads `.env`
+- copies the server setup script to the VM
+- runs the server setup script on the VM
+- pulls `/etc/rancher/k3s/k3s.yaml` from the server
+- discovers the server public IP
+- rewrites the API endpoint
+- writes the result to `~/.kube/config-k3s-lab`
+
+Because it runs the server setup first, it is safe to rerun after rebuilding the VM.
+
+Manual option:
 
 Inside the VM:
 

@@ -17,6 +17,25 @@ This does not create a worker node.
 
 This document stops at SSH verification.
 
+You can run the Terraform workflow manually, or use the thin wrapper script:
+
+```bash
+sh scripts/infra.sh bootstrap
+sh scripts/infra.sh plan
+sh scripts/infra.sh apply
+sh scripts/infra.sh kubeconfig
+```
+
+`kubeconfig` now also copies and runs the VM-side k3s server setup script before fetching the kubeconfig, so it can reconcile a freshly rebuilt server.
+
+For a full reset test, there is also:
+
+```bash
+sh scripts/infra.sh nuke
+```
+
+That destroys both the server stack and the backend bucket stack, in the correct order.
+
 ## 1. Create a GCP Project
 
 If you do not already have a project, create one in the Google Cloud Console.
@@ -102,6 +121,7 @@ TF_STATE_PREFIX="server"
 TF_STATE_LOCATION="EUROPE-WEST3"
 TF_STATE_DELETE_OLD_VERSIONS="false"
 TF_STATE_NONCURRENT_VERSION_AGE_DAYS="90"
+TF_STATE_FORCE_DESTROY="false"
 ```
 
 Notes:
@@ -110,6 +130,7 @@ Notes:
 - `TF_STATE_LOCATION` is for Cloud Storage and should use the bucket location code
 - for Frankfurt, use `EUROPE-WEST3`
 - `90` days is a good default for old Terraform state object versions if you later enable cleanup
+- keep `TF_STATE_FORCE_DESTROY="false"` unless you intentionally want full bucket teardown
 
 If you do not know your public IP:
 
@@ -167,6 +188,12 @@ Apply:
 terraform apply
 ```
 
+Wrapper equivalent:
+
+```bash
+sh scripts/infra.sh bootstrap
+```
+
 Expected result:
 
 - one GCS bucket
@@ -203,6 +230,13 @@ Then wait a few minutes and rerun:
 
 ```bash
 terraform apply
+```
+
+Wrapper equivalents:
+
+```bash
+sh scripts/infra.sh plan
+sh scripts/infra.sh apply
 ```
 
 Do not manually delete partially created Terraform resources unless you know exactly what you are doing.

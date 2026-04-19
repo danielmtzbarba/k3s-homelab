@@ -37,6 +37,18 @@ EOF"
 
 sudo sysctl --system >/dev/null
 
+sudo mkdir -p /etc/rancher/k3s/config.yaml.d
+
+PUBLIC_IP="$(curl -fsS -H 'Metadata-Flavor: Google' \
+  http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip || true)"
+
+if [ -n "${PUBLIC_IP}" ]; then
+  sudo sh -c "cat > /etc/rancher/k3s/config.yaml.d/10-public-ip.yaml <<EOF
+tls-san:
+  - \"${PUBLIC_IP}\"
+EOF"
+fi
+
 touch "${HOME}/.zshrc"
 
 if ! grep -Fq 'export TERM=xterm-256color' "${HOME}/.zshrc"; then
@@ -64,6 +76,9 @@ sudo systemctl restart k3s
 echo
 echo "Default shell set to: ${ZSH_PATH}"
 echo "Open a new SSH session to enter zsh by default."
+if [ -n "${PUBLIC_IP}" ]; then
+  echo "Configured tls-san for public IP: ${PUBLIC_IP}"
+fi
 echo
 echo "Verification commands:"
 echo "  export TERM=xterm-256color"
