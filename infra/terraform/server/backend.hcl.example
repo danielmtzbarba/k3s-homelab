@@ -1,0 +1,2 @@
+bucket = "your-project-id-k3s-homelab-tfstate"
+prefix = "server"
