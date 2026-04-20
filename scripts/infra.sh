@@ -14,7 +14,9 @@ Usage:
   sh scripts/infra.sh bootstrap
   sh scripts/infra.sh plan
   sh scripts/infra.sh apply
+  sh scripts/infra.sh server-setup
   sh scripts/infra.sh kubeconfig
+  sh scripts/infra.sh deploy-addons
   sh scripts/infra.sh destroy
   sh scripts/infra.sh worker-destroy
   sh scripts/infra.sh destroy-backend
@@ -25,7 +27,9 @@ Commands:
   bootstrap       Create or reconcile the Terraform backend bucket.
   plan            Generate server Terraform inputs and run terraform plan.
   apply           Generate server Terraform inputs and run terraform apply.
+  server-setup    Copy and run the VM-side k3s server setup script.
   kubeconfig      Fetch kubeconfig from the server and rewrite it for local use.
+  deploy-addons   Install cluster add-ons such as cert-manager and TLS ingress.
   destroy         Destroy the server infrastructure stack.
   worker-destroy  Destroy the worker infrastructure stack.
   destroy-backend Destroy the backend bucket stack.
@@ -74,6 +78,22 @@ validate_prereqs() {
   fi
 }
 
+run_server_setup() {
+  echo "Running k3s server setup on VM..."
+  cd "${ROOT_DIR}"
+  TMP_SERVER_ENV="$(mktemp)"
+  cat > "${TMP_SERVER_ENV}" <<EOF
+TAILSCALE_ENABLE="${TAILSCALE_ENABLE:-false}"
+TAILSCALE_AUTH_KEY="${TAILSCALE_AUTH_KEY:-}"
+TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME:-${SERVER_NAME}}"
+TAILSCALE_ACCEPT_DNS="${TAILSCALE_ACCEPT_DNS:-false}"
+EOF
+  gcloud compute scp "./scripts/k3s_server_setup.sh" "${SERVER_NAME}:~/k3s_server_setup.sh" --zone="${ZONE}"
+  gcloud compute scp "${TMP_SERVER_ENV}" "${SERVER_NAME}:~/k3s_server_setup.env" --zone="${ZONE}"
+  gcloud compute ssh "${SERVER_NAME}" --zone="${ZONE}" --command="set -a && . ~/k3s_server_setup.env && set +a && chmod +x ~/k3s_server_setup.sh && sh ~/k3s_server_setup.sh && rm -f ~/k3s_server_setup.env"
+  rm -f "${TMP_SERVER_ENV}"
+}
+
 set_gcloud_project() {
   gcloud config set project "${PROJECT_ID}" >/dev/null
 }
@@ -114,6 +134,12 @@ run_kubeconfig() {
   echo "Fetching kubeconfig..."
   cd "${ROOT_DIR}"
   sh ./scripts/fetch_kubeconfig.sh
+}
+
+run_deploy_addons() {
+  echo "Deploying cluster add-ons..."
+  cd "${ROOT_DIR}"
+  sh ./scripts/deploy_cluster_addons.sh
 }
 
 run_destroy_server() {
@@ -222,8 +248,14 @@ main() {
     apply)
       run_server_apply
       ;;
+    server-setup)
+      run_server_setup
+      ;;
     kubeconfig)
       run_kubeconfig
+      ;;
+    deploy-addons)
+      run_deploy_addons
       ;;
     destroy)
       run_destroy_server

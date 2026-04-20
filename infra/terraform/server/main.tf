@@ -12,6 +12,7 @@ resource "google_compute_subnetwork" "server" {
 }
 
 resource "google_compute_firewall" "ssh" {
+  count         = var.public_ssh_enable ? 1 : 0
   name          = "${var.network_name}-allow-ssh"
   network       = google_compute_network.server.name
   source_ranges = [var.ssh_source_range]

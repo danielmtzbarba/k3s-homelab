@@ -68,6 +68,12 @@ variable "ssh_source_range" {
   type        = string
 }
 
+variable "public_ssh_enable" {
+  description = "Whether to create the public SSH firewall rule."
+  type        = bool
+  default     = true
+}
+
 variable "boot_disk_size_gb" {
   description = "Boot disk size in GB."
   type        = number

@@ -14,10 +14,22 @@ if ! command -v sudo >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! command -v curl >/dev/null 2>&1 || ! command -v zsh >/dev/null 2>&1; then
+if ! command -v curl >/dev/null 2>&1 || ! command -v zsh >/dev/null 2>&1 || ! command -v bash >/dev/null 2>&1; then
   sudo apt-get update
-  sudo apt-get install -y curl ca-certificates zsh
+  sudo apt-get install -y bash curl ca-certificates zsh
 fi
+
+if ! command -v helm >/dev/null 2>&1; then
+  TMP_HELM_INSTALL="$(mktemp)"
+  curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 -o "${TMP_HELM_INSTALL}"
+  bash "${TMP_HELM_INSTALL}"
+  rm -f "${TMP_HELM_INSTALL}"
+fi
+
+TAILSCALE_ENABLE="${TAILSCALE_ENABLE:-false}"
+TAILSCALE_AUTH_KEY="${TAILSCALE_AUTH_KEY:-}"
+TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME:-}"
+TAILSCALE_ACCEPT_DNS="${TAILSCALE_ACCEPT_DNS:-false}"
 
 sudo mkdir -p /etc/modules-load.d /etc/sysctl.d
 
@@ -47,6 +59,38 @@ if [ -n "${PUBLIC_IP}" ]; then
 tls-san:
   - \"${PUBLIC_IP}\"
 EOF"
+fi
+
+TAILSCALE_IP=""
+
+if [ "${TAILSCALE_ENABLE}" = "true" ]; then
+  if [ -z "${TAILSCALE_AUTH_KEY}" ]; then
+    echo "TAILSCALE_ENABLE=true requires TAILSCALE_AUTH_KEY." >&2
+    exit 1
+  fi
+
+  TMP_TAILSCALE_INSTALL="$(mktemp)"
+  curl -fsSL https://tailscale.com/install.sh -o "${TMP_TAILSCALE_INSTALL}"
+  sudo sh "${TMP_TAILSCALE_INSTALL}"
+  rm -f "${TMP_TAILSCALE_INSTALL}"
+
+  sudo systemctl enable tailscaled
+  sudo systemctl start tailscaled
+
+  TAILSCALE_ARGS="--auth-key=${TAILSCALE_AUTH_KEY} --accept-dns=${TAILSCALE_ACCEPT_DNS}"
+  if [ -n "${TAILSCALE_HOSTNAME}" ]; then
+    TAILSCALE_ARGS="${TAILSCALE_ARGS} --hostname=${TAILSCALE_HOSTNAME}"
+  fi
+
+  sudo tailscale up ${TAILSCALE_ARGS}
+  TAILSCALE_IP="$(tailscale ip -4 2>/dev/null | head -n 1 || true)"
+
+  if [ -n "${TAILSCALE_IP}" ]; then
+    sudo sh -c "cat > /etc/rancher/k3s/config.yaml.d/20-tailscale-ip.yaml <<EOF
+tls-san:
+  - \"${TAILSCALE_IP}\"
+EOF"
+  fi
 fi
 
 touch "${HOME}/.zshrc"
@@ -79,9 +123,14 @@ echo "Open a new SSH session to enter zsh by default."
 if [ -n "${PUBLIC_IP}" ]; then
   echo "Configured tls-san for public IP: ${PUBLIC_IP}"
 fi
+if [ -n "${TAILSCALE_IP}" ]; then
+  echo "Configured tls-san for Tailscale IP: ${TAILSCALE_IP}"
+fi
 echo
 echo "Verification commands:"
 echo "  export TERM=xterm-256color"
+echo "  helm version"
+echo "  tailscale status"
 echo "  sudo systemctl status k3s --no-pager"
 echo "  sudo kubectl get nodes -o wide"
 echo "  sudo kubectl get pods -A"

@@ -11,6 +11,7 @@ machine_type     = "e2-standard-2"
 image_family     = "ubuntu-2404-lts-amd64"
 image_project    = "ubuntu-os-cloud"
 ssh_source_range = "203.0.113.10/32"
+public_ssh_enable = true
 ssh_user         = "your-user"
 ssh_public_key   = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA..."
 boot_disk_size_gb = 40

@@ -35,6 +35,7 @@ machine_type     = "${MACHINE_TYPE}"
 image_family     = "${IMAGE_FAMILY}"
 image_project    = "${IMAGE_PROJECT}"
 ssh_source_range = "${SSH_SOURCE_RANGE}"
+public_ssh_enable = ${PUBLIC_SSH_ENABLE:-true}
 ssh_user         = "${SSH_USER}"
 ssh_public_key   = "${SSH_PUBLIC_KEY}"
 boot_disk_size_gb = ${BOOT_DISK_SIZE_GB}

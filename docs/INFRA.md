@@ -23,10 +23,12 @@ You can run the Terraform workflow manually, or use the thin wrapper script:
 sh scripts/infra.sh bootstrap
 sh scripts/infra.sh plan
 sh scripts/infra.sh apply
+sh scripts/infra.sh server-setup
 sh scripts/infra.sh kubeconfig
+sh scripts/infra.sh deploy-addons
 ```
 
-`kubeconfig` now also copies and runs the VM-side k3s server setup script before fetching the kubeconfig, so it can reconcile a freshly rebuilt server.
+`server-setup` runs the VM-side bootstrap explicitly. `kubeconfig` still runs the same setup first and then fetches the kubeconfig, so it can reconcile a freshly rebuilt server.
 
 For a full reset test, there is also:
 
@@ -328,3 +330,5 @@ gcloud compute ssh "$SERVER_NAME" --zone="$ZONE"
 This is the end of the infrastructure phase.
 
 Continue with [K3S_SERVER_SETUP.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/docs/K3S_SERVER_SETUP.md:1) after SSH succeeds.
+
+If you want admin access through your tailnet instead of relying on changing public IPs, see [TAILSCALE_CLUSTER.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/docs/TAILSCALE_CLUSTER.md:1).

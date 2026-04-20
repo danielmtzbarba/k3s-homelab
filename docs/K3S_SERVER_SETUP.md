@@ -71,6 +71,7 @@ The script:
 
 - exports `TERM=xterm-256color`
 - installs `zsh`
+- installs `helm`
 - changes the default shell to `zsh` with `sudo usermod`
 - persists `overlay` and `br_netfilter` module loading
 - persists the required k3s sysctl settings
@@ -82,6 +83,14 @@ The script:
 
 After the script finishes, open a new SSH session to enter `zsh` by default.
 
+Wrapper equivalent from your local machine:
+
+```bash
+sh scripts/infra.sh server-setup
+```
+
+That runs the same VM-side script through `gcloud compute scp` and `gcloud compute ssh`.
+
 ## 5. Install k3s Server Manually Instead
 
 If you do not want to use the script, run these manually inside the VM:
@@ -89,7 +98,9 @@ If you do not want to use the script, run these manually inside the VM:
 ```bash
 export TERM=xterm-256color
 sudo apt-get update
-sudo apt-get install -y zsh curl ca-certificates
+sudo apt-get install -y bash zsh curl ca-certificates
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 -o /tmp/get-helm-3
+bash /tmp/get-helm-3
 sudo mkdir -p /etc/modules-load.d /etc/sysctl.d
 sudo sh -c "cat > /etc/modules-load.d/k3s.conf <<'EOF'
 overlay
@@ -165,6 +176,13 @@ That script:
 - writes the result to `~/.kube/config-k3s-lab`
 
 Because it runs the server setup first, it is safe to rerun after rebuilding the VM.
+
+If you want the explicit two-step flow instead of the combined kubeconfig flow:
+
+```bash
+sh scripts/infra.sh server-setup
+sh scripts/infra.sh kubeconfig
+```
 
 Manual option:
 
