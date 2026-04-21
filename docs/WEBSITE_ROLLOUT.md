@@ -1,47 +1,39 @@
 # Website Rollout
 
-This document defines the repeatable rollout path for `danielmtz-website`.
+This document defines the repeatable rollout path for the website applications.
 
 Current model:
 
-- image tag: `stable`
-- deployment source: `kubernetes/apps/danielmtz-website-tls/`
-- normal public path: HTTPS
+- production image tag stored in Git through `kubernetes/apps/danielmtz-website-prod-tls/kustomization.yaml`
+- development image tag stored in Git through `kubernetes/apps/danielmtz-website-dev-tls/kustomization.yaml`
+- production public path: HTTPS
+- development private path: `http://k3s-server-1:30080`
 
-Because `stable` is a mutable tag, the rollout process must force new pods to start so Kubernetes pulls the current image again.
+The website repo already publishes immutable SHA-tagged images to GHCR. This repo should track those exact tags in Git.
 
-## Why A Script Exists
-
-With a mutable tag like `stable`, this is not enough:
-
-```bash
-kubectl apply -k kubernetes/apps/danielmtz-website-tls
-```
-
-That updates resources, but it does not guarantee existing running pods will be replaced.
-
-The correct rollout path is:
-
-1. apply manifests
-2. force a rollout restart
-3. wait for rollout status
-4. verify pods, ingress, and certificate state
-
-## Current Rollout Script
+## Current Rollout Scripts
 
 Use:
 
 ```bash
-sh scripts/website_rollout.sh apply
-sh scripts/website_rollout.sh status
+sh scripts/set_website_image_tag.sh prod <image-sha-tag>
+sh scripts/set_website_image_tag.sh dev <image-sha-tag>
+sh scripts/website_rollout.sh apply prod [image-sha-tag]
+sh scripts/website_rollout.sh apply dev [image-sha-tag]
+sh scripts/website_rollout.sh status prod
+sh scripts/website_rollout.sh status dev
 ```
+
+### `set_website_image_tag.sh`
+
+- updates the Git-tracked image tag in `kustomization.yaml`
 
 ### `apply`
 
-- applies `kubernetes/apps/danielmtz-website-tls`
-- forces a deployment restart
+- optionally updates the image tag first
+- applies the selected prod or dev app path
 - waits for the rollout to finish
-- prints deployment, pod, ingress, and certificate status
+- prints deployment, pod, service, ingress, and certificate status when present
 
 ### `status`
 
@@ -51,61 +43,36 @@ sh scripts/website_rollout.sh status
 
 For the current website setup, the normal update path should be:
 
-1. build and push the new `stable` image from the website repo
-2. run:
+1. build and push the new SHA-tagged image from the website repo
+2. update this repo to the exact prod or dev image tag
+3. run the matching rollout:
 
 ```bash
-sh scripts/website_rollout.sh apply
+sh scripts/website_rollout.sh apply prod <image-sha-tag>
+sh scripts/website_rollout.sh apply dev <image-sha-tag>
 ```
 
-3. verify:
+4. verify:
 
 ```bash
 curl -I https://danielmtzbarba.com
 curl -I https://www.danielmtzbarba.com
+curl http://k3s-server-1:30080
 ```
 
 Expected result:
 
 - apex returns `200`
 - `www` returns a `308` redirect
+- dev returns the private site without redirecting to the public domain
 
-## Why Not Argo CD Yet
+## Why This Fits Argo CD
 
-Argo CD is a good next step, but it solves a different maturity level:
+With immutable tags:
 
-- Git-driven reconciliation
-- automatic drift correction
-- declarative app sync
-- cluster app inventory and health in one place
+- Git shows the exact deployed prod and dev versions
+- Argo CD sees a manifest diff for each production rollout
+- Image Updater can write back the dev image change to Git
+- no forced restart is needed to pick up new image content
 
-That is stronger than a shell rollout script, but it also adds:
-
-- another platform component
-- application definitions
-- GitOps repo conventions
-- sync policy decisions
-
-For your current cluster, the right order is:
-
-1. clean app manifests
-2. clean rollout process
-3. stable image build/push flow
-4. then GitOps if you want continuous reconciliation
-
-## When To Move To Argo CD
-
-It becomes worth it when:
-
-- you have more than one or two real apps
-- you want declarative cluster reconciliation
-- you want app state visible in the cluster itself
-- you want to stop running imperative `kubectl apply` as the main deployment method
-
-So yes, Argo CD is the right long-term direction.
-
-But the correct immediate step is this:
-
-- keep the current app layout
-- use the rollout script for repeatable updates
-- move to Argo CD after the application structure settles
+That is the correct GitOps shape for the split environment model.

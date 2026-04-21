@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: danielmtz-website
-  namespace: danielmtz-website
+  name: danielmtz-website-prod
+  namespace: danielmtz-website-prod
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
@@ -20,7 +20,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: danielmtz-website
+                name: danielmtz-website-prod
                 port:
                   number: 80
     - host: www.danielmtzbarba.com
@@ -30,6 +30,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: danielmtz-website
+                name: danielmtz-website-prod
                 port:
                   number: 80

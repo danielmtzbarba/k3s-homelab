@@ -1,0 +1,19 @@
+# Argo CD Applications
+
+This directory contains Argo CD `Application` resources.
+
+Apply these only after:
+
+- Argo CD is installed
+- the `argocd` namespace exists
+- the Argo CD CRDs are available in the cluster
+
+Current website applications:
+
+- `danielmtz-website-prod.yaml`
+- `danielmtz-website-dev.yaml`
+
+Recommendation:
+
+- keep production on manual sync first
+- allow development automation only after Image Updater is configured

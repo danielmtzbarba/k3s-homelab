@@ -8,7 +8,7 @@ This guide rebuilds the environment from zero and verifies the current end-to-en
 - Tailscale admin access
 - cert-manager platform add-on
 - worker node join
-- `danielmtz-website-tls` deployment
+- `danielmtz-website-prod-tls` deployment
 - HTTPS on the real domain
 
 This is the exact operator path for the current repository state.
@@ -160,14 +160,14 @@ Because the website image lives in a private GHCR repository, create the namespa
 Create the namespace:
 
 ```bash
-kubectl apply -f kubernetes/apps/danielmtz-website-tls/namespace.yaml
+kubectl apply -f kubernetes/apps/danielmtz-website-prod-tls/namespace.yaml
 ```
 
 Create the pull secret:
 
 ```bash
 kubectl create secret docker-registry ghcr-pull-secret \
-  --namespace danielmtz-website \
+  --namespace danielmtz-website-prod \
   --docker-server=ghcr.io \
   --docker-username=YOUR_GITHUB_USERNAME \
   --docker-password=YOUR_GITHUB_PAT \
@@ -177,7 +177,7 @@ kubectl create secret docker-registry ghcr-pull-secret \
 If the secret already exists from a partial retry:
 
 ```bash
-kubectl delete secret ghcr-pull-secret -n danielmtz-website
+kubectl delete secret ghcr-pull-secret -n danielmtz-website-prod
 ```
 
 Then recreate it.
@@ -187,22 +187,26 @@ Then recreate it.
 Use the rollout script:
 
 ```bash
-sh scripts/website_rollout.sh apply
+sh scripts/website_rollout.sh apply prod
 ```
 
 This:
 
-- applies `kubernetes/apps/danielmtz-website-tls`
-- forces a deployment restart
+- applies `kubernetes/apps/danielmtz-website-prod-tls`
 - waits for rollout success
 - prints deployment, pod, ingress, and certificate status
+
+If you need to deploy a specific immutable image tag first:
+
+```bash
+sh scripts/website_rollout.sh apply prod <image-sha-tag>
+```
 
 You can also deploy manually if needed:
 
 ```bash
-kubectl apply -k kubernetes/apps/danielmtz-website-tls
-kubectl rollout restart deployment/danielmtz-website -n danielmtz-website
-kubectl rollout status deployment/danielmtz-website -n danielmtz-website --timeout=180s
+kubectl apply -k kubernetes/apps/danielmtz-website-prod-tls
+kubectl rollout status deployment/danielmtz-website-prod -n danielmtz-website-prod --timeout=180s
 ```
 
 ## 9. Verify The Website
@@ -210,10 +214,10 @@ kubectl rollout status deployment/danielmtz-website -n danielmtz-website --timeo
 Check Kubernetes state:
 
 ```bash
-kubectl get pods -n danielmtz-website -o wide
-kubectl get svc,ingress -n danielmtz-website
-kubectl get certificate -n danielmtz-website
-kubectl describe certificate danielmtzbarba-com-tls -n danielmtz-website
+kubectl get pods -n danielmtz-website-prod -o wide
+kubectl get svc,ingress -n danielmtz-website-prod
+kubectl get certificate -n danielmtz-website-prod
+kubectl describe certificate danielmtzbarba-com-tls -n danielmtz-website-prod
 ```
 
 Check the public site:
@@ -283,15 +287,15 @@ sh scripts/infra.sh deploy-addons
 sh scripts/worker.sh apply
 sh scripts/worker.sh join
 
-kubectl apply -f kubernetes/apps/danielmtz-website-tls/namespace.yaml
+kubectl apply -f kubernetes/apps/danielmtz-website-prod-tls/namespace.yaml
 kubectl create secret docker-registry ghcr-pull-secret \
-  --namespace danielmtz-website \
+  --namespace danielmtz-website-prod \
   --docker-server=ghcr.io \
   --docker-username=YOUR_GITHUB_USERNAME \
   --docker-password=YOUR_GITHUB_PAT \
   --docker-email=YOUR_EMAIL
 
-sh scripts/website_rollout.sh apply
+sh scripts/website_rollout.sh apply prod
 
 curl -I https://danielmtzbarba.com
 curl -I https://www.danielmtzbarba.com

@@ -4,8 +4,11 @@ This directory is the canonical home for cluster-level manifests and app deploym
 
 Current layout:
 
-- `danielmtz-website-tls/`
-  Canonical website deployment with TLS included.
+- `danielmtz-website-prod-tls/`
+  Production website app with public ingress and TLS.
+
+- `danielmtz-website-dev-tls/`
+  Private development website app exposed through the tailnet via NodePort.
 
 The intent is simple:
 

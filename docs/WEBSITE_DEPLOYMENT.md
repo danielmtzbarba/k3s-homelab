@@ -1,6 +1,6 @@
 # Website Deployment
 
-This document finishes the deployment of `danielmtz-website` onto the cluster.
+This document finishes the production deployment of the website onto the cluster.
 
 Current assumptions:
 
@@ -8,22 +8,28 @@ Current assumptions:
 - Traefik is working
 - cert-manager is working
 - the website image exists in GHCR
-- the deployment uses the `stable` tag
+- the deployment uses a published image tag from GHCR
 - the domain is currently served from AWS S3
 
 Current Kubernetes app path:
 
-- `kubernetes/apps/danielmtz-website-tls/`
+- `kubernetes/apps/danielmtz-website-prod-tls/`
 
 ## 1. Verify The Image Exists
 
 Before touching DNS, make sure the image you want to run is available:
 
-- `ghcr.io/danielmtzbarba/danielmtz-website:stable`
+- `ghcr.io/danielmtzbarba/danielmtz-website:<tag>`
 
-Your deployment manifest already points to that tag in:
+The app tag is controlled in:
 
-- `kubernetes/apps/danielmtz-website-tls/deployment.yaml`
+- `kubernetes/apps/danielmtz-website-prod-tls/kustomization.yaml`
+
+If you need to change it:
+
+```bash
+sh scripts/set_website_image_tag.sh prod <image-tag>
+```
 
 ## 2. Create The GHCR Pull Secret
 
@@ -32,14 +38,14 @@ Because the website repository is private, the cluster cannot pull the image ano
 Create the namespace first:
 
 ```bash
-kubectl apply -f kubernetes/apps/danielmtz-website-tls/namespace.yaml
+kubectl apply -f kubernetes/apps/danielmtz-website-prod-tls/namespace.yaml
 ```
 
 Then create the GHCR image pull secret inside that namespace:
 
 ```bash
 kubectl create secret docker-registry ghcr-pull-secret \
-  --namespace danielmtz-website \
+  --namespace danielmtz-website-prod \
   --docker-server=ghcr.io \
   --docker-username=YOUR_GITHUB_USERNAME \
   --docker-password=YOUR_GITHUB_PAT \
@@ -52,23 +58,23 @@ Notes:
 - the deployment already references `ghcr-pull-secret`
 - do not commit the token or a generated secret manifest into the repository
 
-## 3. Apply The Website Over HTTP First
+## 3. Apply The Production Website App
 
 Apply the website app:
 
 ```bash
-kubectl apply -k kubernetes/apps/danielmtz-website-tls
+kubectl apply -k kubernetes/apps/danielmtz-website-prod-tls
 ```
 
 Verify:
 
 ```bash
-kubectl get pods -n danielmtz-website -o wide
-kubectl get svc,ingress -n danielmtz-website
-kubectl describe deployment danielmtz-website -n danielmtz-website
+kubectl get pods -n danielmtz-website-prod -o wide
+kubectl get svc,ingress -n danielmtz-website-prod
+kubectl describe deployment danielmtz-website-prod -n danielmtz-website-prod
 ```
 
-The pods should be `Running` and the service should point to them cleanly.
+The pods should be `Running`, the service should point to them cleanly, and the ingress should be present.
 
 ## 4. Get The Server Public IP
 
@@ -143,14 +149,14 @@ curl -I http://danielmtzbarba.com
 curl http://danielmtzbarba.com
 ```
 
-At this stage, the website should already be serving through the full app definition, including TLS ingress.
+At this stage, the website should already be serving through the full production app definition, including TLS ingress.
 
 Useful checks:
 
 ```bash
-kubectl get pods -n danielmtz-website -o wide
-kubectl describe ingress danielmtz-website -n danielmtz-website
-kubectl logs -n danielmtz-website deploy/danielmtz-website
+kubectl get pods -n danielmtz-website-prod -o wide
+kubectl describe ingress danielmtz-website-prod -n danielmtz-website-prod
+kubectl logs -n danielmtz-website-prod deploy/danielmtz-website-prod
 ```
 
 ## 8. Watch Certificate Issuance
@@ -159,7 +165,7 @@ Check:
 
 ```bash
 kubectl get certificate
-kubectl describe certificate danielmtzbarba-com-tls -n danielmtz-website
+kubectl describe certificate danielmtzbarba-com-tls -n danielmtz-website-prod
 kubectl get orders.acme.cert-manager.io
 kubectl get challenges.acme.cert-manager.io
 ```

@@ -106,7 +106,7 @@ kubectl describe clusterissuer letsencrypt-prod
 Apply:
 
 ```bash
-kubectl apply -k kubernetes/apps/danielmtz-website-tls
+kubectl apply -k kubernetes/apps/danielmtz-website-prod-tls
 ```
 
 `deploy-addons` does not apply application ingresses. Keep platform add-ons and app TLS manifests separate.
@@ -190,7 +190,7 @@ kubectl logs -n kube-system deploy/traefik
 If you want to remove HTTPS for the echo app only:
 
 ```bash
-kubectl delete -k kubernetes/apps/danielmtz-website-tls
+kubectl delete -k kubernetes/apps/danielmtz-website-prod-tls
 ```
 
 If you also want to remove the issuer:

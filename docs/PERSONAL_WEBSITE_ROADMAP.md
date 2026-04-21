@@ -1,174 +1,97 @@
 # Personal Website Roadmap
 
-This roadmap starts from the point where the cluster is already working:
+This roadmap now assumes the website is already containerized and split into two cluster targets:
 
-- server and worker are joined
-- Traefik ingress works
-- HTTPS is already working through cert-manager and Let's Encrypt
+- production:
+  `kubernetes/apps/danielmtz-website-prod-tls/`
+- development:
+  `kubernetes/apps/danielmtz-website-dev-tls/`
 
-The goal now is to deploy your personal website as the first real workload after the echo example.
+The current model is:
 
-## Target Structure
+- production is public, behind Traefik, with TLS
+- development is private on the tailnet through a dedicated NodePort
+- both environments use immutable GHCR image tags
+- Argo CD owns the desired-state path
 
-Cluster application manifests should now live under:
+## Current Baseline
 
-- `kubernetes/platform/cert-manager/`
-- `kubernetes/platform/issuers/`
-- `kubernetes/apps/danielmtz-website-tls/`
+The repository already contains:
 
-The website deployment should follow the same pattern:
+- a public production website app
+- a private development website app
+- Argo CD application manifests for both
+- Argo CD Image Updater scaffolding for dev
+- a production PR-based deployment path from the website repo
 
-1. `Deployment`
-2. `Service`
-3. `Ingress`
-4. `Ingress` with TLS
+## Environment Model
 
-## Step 1. Decide How The Website Runs
+### Production
 
-Before writing Kubernetes manifests, define the runtime shape of the website.
+Production lives under:
 
-Pick one of these:
+- `kubernetes/apps/danielmtz-website-prod-tls/`
 
-- static site served by `nginx` or `caddy`
-- framework app served by its own runtime, such as Next.js or another Node server
+It should remain:
 
-The first option is better for the initial deployment if your site can be exported as static files.
+- public
+- TLS-enabled
+- review-driven
+- reconciled from Git
 
-Why:
+The intended production flow is:
 
-- fewer moving parts
-- smaller image
-- easier health checks
-- simpler rollout behavior
+1. the website `prod` branch publishes a SHA-tagged image
+2. the website repo opens a PR against `k3s-homelab`
+3. that PR updates the prod app image tag in Git
+4. merge to `main` becomes the deploy approval
+5. Argo CD syncs production from Git
 
-## Step 2. Containerize The Website
+### Development
 
-Your first real task is not Kubernetes. It is making the website image clean and reproducible.
+Development lives under:
 
-The website image should:
+- `kubernetes/apps/danielmtz-website-dev-tls/`
 
-- build deterministically
-- expose one HTTP port
-- run as a single process
-- serve the built site reliably
+It should remain:
 
-Exit criteria for this step:
+- private
+- reachable only on the tailnet
+- fast-moving
+- automatically advanced from new dev images
 
-- you can build the image locally
-- you can run it locally
-- you can open the site in a browser on the expected port
+The intended development flow is:
 
-## Step 3. Choose The Public Hostname
+1. the website `dev` branch publishes a SHA-tagged image
+2. Argo CD Image Updater detects the new image
+3. it writes the new dev tag back into this repo
+4. Argo CD auto-syncs the dev app
 
-Pick the website hostname before writing the ingress.
+## What Still Needs To Be Proven
 
-Good options:
+The remaining roadmap items are operational, not structural:
 
-- `danielmtzbarba.com`
-- `www.danielmtzbarba.com`
-- `site.k3s.danielmtzbarba.com`
+1. clean out the old legacy website resources from the cluster
+2. prove the private dev build never redirects to the public domain
+3. complete the Argo CD handoff for prod and dev
+4. validate one full automatic dev image update
+5. validate one full PR-based production rollout
 
-Recommendation:
+## Recommended Validation Order
 
-- keep the root or `www` hostname for the website
-- keep future subdomains available for later services if needed
+1. deploy the renamed prod app into `danielmtz-website-prod`
+2. delete the old single-app production resources from `danielmtz-website`
+3. delete the old dev resources named `danielmtz-website` from `danielmtz-website-dev`
+4. verify private dev access on `http://k3s-server-1:30080`
+5. apply the Argo CD prod and dev applications
+6. validate Argo CD Image Updater for dev
+7. validate the website repo PR workflow for prod
 
-You should create the corresponding Route53 record before enabling TLS.
+## Longer-Term Follow-Up
 
-## Step 4. Create The Website Kubernetes Manifests
+After the environment split is stable, the next worthwhile improvements are:
 
-Once the image exists, create the first website manifests inside:
-
-- `kubernetes/apps/danielmtz-website-tls/deployment.yaml`
-- `kubernetes/apps/danielmtz-website-tls/service.yaml`
-- `kubernetes/apps/danielmtz-website-tls/ingress.yaml`
-
-The current version includes:
-
-- `replicas: 2`
-- resource requests and limits
-- `readinessProbe`
-- `livenessProbe`
-- `Ingress` with dedicated hostnames
-- TLS using the existing `letsencrypt-prod` issuer
-
-## Step 5. Deploy The App
-
-Apply:
-
-```bash
-kubectl apply -k kubernetes/apps/danielmtz-website-tls
-```
-
-Then verify:
-
-- pods are running
-- the service resolves
-- the website serves through the ingress
-- the certificate is issued cleanly
-
-Verify:
-
-- `kubectl get certificate`
-- `kubectl describe certificate`
-- `curl -I https://<your-hostname>`
-
-## Step 6. Test Rollouts
-
-Once the first deployment works, force yourself to test an actual update.
-
-You should:
-
-- build a second image version
-- update the `Deployment`
-- observe rollout behavior
-- confirm there is no broken ingress routing during the update
-
-This is where the deployment starts becoming real.
-
-## Step 7. Add Minimal Operational Hardening
-
-Before calling the website deployment stable, add:
-
-- explicit resource requests and limits
-- non-root container execution if the image supports it
-- rollout history visibility
-- clear image tagging strategy
-- a simple rollback path
-
-Do not jump into heavy platform work yet. Keep the first website deployment simple and correct.
-
-## Recommended Execution Order
-
-1. finalize how the website runs locally
-2. containerize it
-3. choose the hostname
-4. create Route53 DNS
-5. add website manifests under `kubernetes/apps/danielmtz-website-tls/`
-6. deploy the app
-7. test one full update/rollout
-
-## What I Recommend Next
-
-The next concrete step is to inspect the website project itself and decide whether it should be deployed as:
-
-- a static site image
-- or an application server image
-
-That decision determines the manifest shape, resource profile, and health checks.
-
-## Current Imported Baseline
-
-The repository now already contains the first website deployment baseline in:
-
-- `kubernetes/apps/danielmtz-website-tls/namespace.yaml`
-- `kubernetes/apps/danielmtz-website-tls/deployment.yaml`
-- `kubernetes/apps/danielmtz-website-tls/service.yaml`
-- `kubernetes/apps/danielmtz-website-tls/ingress.yaml`
-
-These files were adapted from the website repository infra.
-
-Before applying them, you still need to:
-
-1. decide whether `stable` is the right rollout tag for the deployment
-2. apply the app and verify the certificate issuance path
+- tighten the dev access path if you want something cleaner than a raw NodePort
+- move more cluster apps under Argo CD ownership
+- add observability for app rollout failures and certificate issues
+- formalize promotion from dev to prod around immutable image tags

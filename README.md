@@ -8,6 +8,7 @@
 [![GCP](https://img.shields.io/badge/gcp-compute%20engine-4285F4)](https://cloud.google.com/compute)
 [![k3s](https://img.shields.io/badge/k3s-lightweight%20kubernetes-FFC61C)](https://k3s.io/)
 [![cert-manager](https://img.shields.io/badge/cert--manager-TLS-326CE5)](https://cert-manager.io/)
+[![Argo CD](https://img.shields.io/badge/argo%20cd-GitOps-EF7B4D)](https://argo-cd.readthedocs.io/)
 
 </div>
 
@@ -20,8 +21,9 @@ The repository is intentionally opinionated around a simple progression:
 - bootstrap Terraform remote state
 - provision a first k3s server on GCP
 - join a first worker node
-- deploy a trivial HTTP workload
-- expose it through Traefik
+- deploy a real website workload
+- expose production through Traefik
+- keep development private on the tailnet
 - issue a real TLS certificate with cert-manager and Let's Encrypt
 
 This repository is a clean base for understanding infrastructure, node bootstrap, cluster access, ingress, and HTTPS before moving real services onto Kubernetes.
@@ -48,19 +50,23 @@ The repository currently supports:
   - server setup
   - kubeconfig retrieval
   - add-on deployment
-- a working echo example exposed by Traefik
-- HTTPS for the echo app with:
+- a working website deployment with:
   - Route53 DNS
+  - Traefik ingress
   - cert-manager
   - Let's Encrypt
+  - Tailscale-based admin access
 
 The current cluster path has been validated end to end:
 
 - infrastructure provisioned by Terraform
 - server bootstrap automated through `infra.sh`
 - worker join automated through `worker.sh`
-- echo app reachable over HTTP
-- echo app reachable over HTTPS
+- website reachable over HTTPS
+- `www` redirecting to the apex domain
+- separate prod and dev website app paths
+- Argo CD installed for GitOps
+- admin access working over Tailscale
 
 ## Key Features
 
@@ -68,8 +74,9 @@ The current cluster path has been validated end to end:
 - **Thin shell automation** around Terraform and cluster operations instead of burying everything in CI too early.
 - **k3s-specific node bootstrap** including required kernel modules, sysctls, `tls-san`, and shell setup.
 - **Remote kubeconfig automation** for local cluster access after server creation.
-- **Cluster add-on deployment path** for cert-manager and TLS ingress.
-- **Minimal test workload** to validate scheduling, ingress, and certificate issuance before real services.
+- **Cluster add-on deployment path** for cert-manager and shared issuer resources.
+- **Canonical app path** for the website workload with `kustomize` and TLS included.
+- **Tailscale-based admin access** for SSH and kubeconfig after cluster bootstrap.
 - **Operator-focused documentation** that follows the actual execution order.
 
 ## Documentation
@@ -85,6 +92,10 @@ Project documentation lives in `docs/`:
 - [Website Deployment](docs/WEBSITE_DEPLOYMENT.md)
 - [Website Rollout](docs/WEBSITE_ROLLOUT.md)
 - [From Zero To Website](docs/FROM_ZERO_TO_WEBSITE.md)
+- [Argo CD Install](docs/ARGOCD.md)
+- [Argo CD Roadmap](docs/ARGOCD_ROADMAP.md)
+- [Argo CD Environment Roadmap](docs/ARGOCD_ENVIRONMENTS.md)
+- [Argo CD Image Updater](docs/ARGOCD_IMAGE_UPDATER.md)
 
 These docs describe the repository as it exists today, not a future target architecture.
 
@@ -104,14 +115,11 @@ These docs describe the repository as it exists today, not a future target archi
 - `scripts/`
   Thin operator wrappers and VM bootstrap scripts for server setup, worker join, kubeconfig retrieval, checks, and add-on deployment.
 
-- `manifests/`
-  Legacy manifest staging area kept from the initial bootstrap phase.
-
 - `kubernetes/apps/`
-  Canonical home for cluster application workloads such as `danielmtz-website-tls`.
+  Canonical home for cluster application workloads such as `danielmtz-website-prod-tls` and `danielmtz-website-dev-tls`.
 
 - `kubernetes/platform/`
-  Canonical home for cluster platform components such as cert-manager and shared issuer resources.
+  Canonical home for cluster platform components such as cert-manager, issuer resources, and Argo CD scaffolding.
 
 - `docs/`
   Step-by-step operator documentation for the current learning path.
@@ -141,6 +149,8 @@ sh scripts/infra.sh kubeconfig
 sh scripts/worker.sh apply
 sh scripts/worker.sh join
 sh scripts/infra.sh deploy-addons
+sh scripts/infra.sh deploy-argocd
+sh scripts/infra.sh deploy-image-updater
 sh scripts/check.sh
 ```
 
@@ -159,7 +169,7 @@ Planned next layers include:
 
 - production-grade secret management
 - backups and disaster recovery
-- GitOps
+- Argo CD-managed GitOps reconciliation for prod and dev
 - centralized observability
 - stateful workloads
 - high-availability control planes

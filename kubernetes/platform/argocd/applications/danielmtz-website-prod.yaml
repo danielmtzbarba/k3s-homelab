@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: danielmtz-website-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: danielmtz-website
+    environment: prod
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:danielmtzbarba/k3s-homelab.git
+    targetRevision: main
+    path: kubernetes/apps/danielmtz-website-prod-tls
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: danielmtz-website-prod
+  syncPolicy: {}

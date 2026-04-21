@@ -1,8 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: danielmtz-website
+namespace: danielmtz-website-prod
 resources:
   - namespace.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+images:
+  - name: ghcr.io/danielmtzbarba/danielmtz-website
+    newTag: 588f970019511a9c3d4dcce7d6c4e9b8dce547c4

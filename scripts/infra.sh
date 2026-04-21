@@ -17,6 +17,8 @@ Usage:
   sh scripts/infra.sh server-setup
   sh scripts/infra.sh kubeconfig
   sh scripts/infra.sh deploy-addons
+  sh scripts/infra.sh deploy-argocd
+  sh scripts/infra.sh deploy-image-updater
   sh scripts/infra.sh destroy
   sh scripts/infra.sh worker-destroy
   sh scripts/infra.sh destroy-backend
@@ -30,6 +32,8 @@ Commands:
   server-setup    Copy and run the VM-side k3s server setup script.
   kubeconfig      Fetch kubeconfig from the server and rewrite it for local use.
   deploy-addons   Install cluster add-ons such as cert-manager and TLS ingress.
+  deploy-argocd   Install or upgrade Argo CD with Helm.
+  deploy-image-updater Install Argo CD Image Updater in the argocd namespace.
   destroy         Destroy the server infrastructure stack.
   worker-destroy  Destroy the worker infrastructure stack.
   destroy-backend Destroy the backend bucket stack.
@@ -140,6 +144,18 @@ run_deploy_addons() {
   echo "Deploying cluster add-ons..."
   cd "${ROOT_DIR}"
   sh ./scripts/deploy_cluster_addons.sh
+}
+
+run_deploy_argocd() {
+  echo "Deploying Argo CD..."
+  cd "${ROOT_DIR}"
+  sh ./scripts/deploy_argocd.sh
+}
+
+run_deploy_image_updater() {
+  echo "Deploying Argo CD Image Updater..."
+  cd "${ROOT_DIR}"
+  sh ./scripts/deploy_argocd_image_updater.sh
 }
 
 run_destroy_server() {
@@ -256,6 +272,12 @@ main() {
       ;;
     deploy-addons)
       run_deploy_addons
+      ;;
+    deploy-argocd)
+      run_deploy_argocd
+      ;;
+    deploy-image-updater)
+      run_deploy_image_updater
       ;;
     destroy)
       run_destroy_server
