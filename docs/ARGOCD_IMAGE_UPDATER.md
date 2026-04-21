@@ -80,9 +80,22 @@ Image Updater needs:
 
 The current dev updater configuration expects a Docker pull secret at:
 
-- `danielmtz-website-dev/ghcr-pull-secret`
+- `argocd/ghcr-pull-secret`
 
-That same secret is also used by the dev workload itself.
+This keeps Image Updater from needing cross-namespace secret access.
+
+Create it with:
+
+```bash
+kubectl create secret docker-registry ghcr-pull-secret \
+  -n argocd \
+  --docker-server=ghcr.io \
+  --docker-username=YOUR_GITHUB_USERNAME \
+  --docker-password=YOUR_GHCR_PAT \
+  --docker-email=YOUR_EMAIL
+```
+
+The dev workload can still keep its own `ghcr-pull-secret` in `danielmtz-website-dev` for image pulls.
 
 ### 2. Git Write-Back Access
 
