@@ -21,6 +21,12 @@ Current purpose:
 - `dev`
   auto-detects new images and writes the updated image tag back to Git
 
+The dev updater only tracks branch-aware tags in the form:
+
+- `dev-<40-char-sha>`
+
+That keeps dev automation from selecting images built from other branches.
+
 ## Important Credential Boundary
 
 The dev updater needs two kinds of access:

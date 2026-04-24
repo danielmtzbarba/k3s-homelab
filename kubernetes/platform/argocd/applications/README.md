@@ -15,5 +15,5 @@ Current website applications:
 
 Recommendation:
 
-- keep production on manual sync first
+- keep production Git-approved through PR merge, then let Argo CD auto-sync
 - allow development automation only after Image Updater is configured

@@ -11,7 +11,7 @@ spec:
           imageName: "ghcr.io/danielmtzbarba/danielmtz-website"
           commonUpdateSettings:
             updateStrategy: "newest-build"
-            allowTags: "regexp:^[0-9a-f]{40}$"
+            allowTags: "regexp:^dev-[0-9a-f]{40}$"
             pullSecret: "pullsecret:argocd/ghcr-pull-secret"
       writeBackConfig:
         method: "git:secret:argocd/k3s-homelab-writeback"

@@ -9,7 +9,11 @@ Current model:
 - production public path: HTTPS
 - development private path: `http://k3s-server-1:30080`
 
-The website repo already publishes immutable SHA-tagged images to GHCR. This repo should track those exact tags in Git.
+The website repo should publish branch-aware immutable tags to GHCR. This repo should track those exact tags in Git.
+Use branch-aware immutable tags:
+
+- production: `prod-<40-char-sha>`
+- development: `dev-<40-char-sha>`
 
 ## Current Rollout Scripts
 
@@ -43,7 +47,7 @@ sh scripts/website_rollout.sh status dev
 
 For the current website setup, the normal update path should be:
 
-1. build and push the new SHA-tagged image from the website repo
+1. build and push the new branch-aware immutable image tag from the website repo
 2. update this repo to the exact prod or dev image tag
 3. run the matching rollout:
 
@@ -73,6 +77,7 @@ With immutable tags:
 - Git shows the exact deployed prod and dev versions
 - Argo CD sees a manifest diff for each production rollout
 - Image Updater can write back the dev image change to Git
-- no forced restart is needed to pick up new image content
+- when the tag changes, the Deployment pod template changes, so Kubernetes creates a new ReplicaSet and rolls out new pods for the new image
+- no forced restart is needed when each release uses a new immutable tag
 
 That is the correct GitOps shape for the split environment model.

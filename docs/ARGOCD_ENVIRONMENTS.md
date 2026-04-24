@@ -125,7 +125,7 @@ Should:
 - point to the prod app path
 - target namespace `danielmtz-website-prod`
 - follow `main`
-- start with manual sync or carefully enabled automated sync after trust is established
+- auto-sync after a Git-approved merge to `main`
 
 ### Development Application
 
@@ -157,12 +157,12 @@ Keep immutable image tags for both environments.
 Examples:
 
 - production:
-  `ghcr.io/danielmtzbarba/danielmtz-website:<prod-sha>`
+  `ghcr.io/danielmtzbarba/danielmtz-website:prod-<40-char-sha>`
 
 - development:
-  `ghcr.io/danielmtzbarba/danielmtz-website:<dev-sha>`
+  `ghcr.io/danielmtzbarba/danielmtz-website:dev-<40-char-sha>`
 
-You can also add environment-specific tags if you want easier filtering, but the underlying deployment references should still be immutable.
+The environment prefix is important here because it gives Image Updater a safe way to filter dev images without accidentally selecting a prod build. The underlying deployment references should still be immutable.
 
 ## Production Roadmap
 
@@ -181,8 +181,9 @@ You can also add environment-specific tags if you want easier filtering, but the
 5. Give Image Updater access to:
    - the private GHCR repository
    - the Argo CD application it needs to update
-6. Enable automatic sync for the dev app only.
-7. Verify that a new image push from the website `dev` branch advances the dev environment automatically.
+6. Configure Image Updater to only accept `dev-<40-char-sha>` tags.
+7. Enable automatic sync for the dev app only.
+8. Verify that a new image push from the website `dev` branch advances the dev environment automatically.
 
 ## Operational Boundary
 
@@ -193,6 +194,7 @@ Production is:
 - slower
 - reviewed
 - Git-approved
+- automatically reconciled after merge
 
 Development is:
 
@@ -220,5 +222,6 @@ Do not:
 - let prod and dev share one namespace
 - expose dev publicly by default
 - mix dev image updater behavior into the production app
+- let dev and prod share the same undifferentiated image tag format
 
 Keep the separation explicit.

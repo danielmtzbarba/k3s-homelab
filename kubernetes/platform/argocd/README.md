@@ -59,3 +59,5 @@ After the install:
 1. port-forward the Argo CD server
 2. configure repository credentials
 3. apply the application manifests in `applications/`
+
+Keep the Argo CD server private to the admin path. Do not expose it publicly for this cluster stage.

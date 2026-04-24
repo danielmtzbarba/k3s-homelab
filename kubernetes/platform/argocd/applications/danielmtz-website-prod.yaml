@@ -15,4 +15,7 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: danielmtz-website-prod
-  syncPolicy: {}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

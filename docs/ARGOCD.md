@@ -16,12 +16,12 @@ The current repo install path:
 - installs Argo CD with the upstream Helm chart
 - installs the Argo CD CRDs through the chart
 - keeps the Argo CD server as `ClusterIP`
-- expects first access through `kubectl port-forward`
+- expects private admin access through `kubectl port-forward`
 
 It intentionally does not:
 
 - expose Argo CD publicly yet
-- configure ingress or TLS for Argo CD
+- add ingress for Argo CD
 - apply Argo CD `Application` resources automatically
 - configure credentials for the private GitHub repository
 
@@ -60,12 +60,14 @@ The configuration lives in:
 Start with port-forward:
 
 ```bash
-kubectl port-forward svc/argocd-server -n argocd 8080:80
+kubectl port-forward svc/argocd-server -n argocd 8443:443
 ```
 
 Then open:
 
-- [http://localhost:8080](http://localhost:8080)
+- [https://localhost:8443](https://localhost:8443)
+
+Because the server stays private behind the admin path and uses Argo CD's default TLS, your browser may show a certificate warning on first access unless you later provide a trusted certificate.
 
 Get the initial admin password:
 
@@ -83,11 +85,11 @@ That secret is only for the first login. Remove it after the password change so 
 
 ## First Recommended Use
 
-Do not enable automated sync first.
+For this repository stage, production approval should happen at Git merge time.
 
 Start with:
 
-- manual sync
+- Git-approved merge for prod
 - one app
 - repo credentials configured first
 
@@ -176,17 +178,17 @@ kubectl get applications -n argocd
 
 ## First Sync
 
-For production, keep sync manual first. Development can use automatic sync once the Image Updater path is in place.
+For production, use merge-to-`main` as the approval boundary and let Argo CD sync automatically afterward. Development can use Image Updater plus automatic sync.
 
 Use the UI through the existing port-forward:
 
-- [http://localhost:8080](http://localhost:8080)
+- [https://localhost:8443](https://localhost:8443)
 
 Then:
 
 1. open `danielmtz-website-prod`
 2. inspect health and diff
-3. sync manually
+3. verify Argo CD reconciled the merged revision automatically
 
 You do not need the `argocd` CLI on your local machine for this first step. The UI is enough.
 
@@ -204,8 +206,8 @@ After Argo CD is installed and reachable:
 
 1. configure repository credentials
 2. apply the prod and dev `Application` resources
-3. use manual sync first for prod
-4. update the website image tag in Git for each prod rollout
+3. update the website image tag in Git for each prod rollout
+4. merge the prod PR and let Argo CD reconcile it automatically
 
 For the planned production/development split, see:
 

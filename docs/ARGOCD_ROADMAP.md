@@ -92,7 +92,7 @@ Why:
 - it already uses `kustomize`
 - it already exercises ingress, TLS, DNS, and rollout behavior
 
-The initial sync policy should be manual.
+The initial production approval boundary should be Git merge, not a manual sync click.
 
 That lets you learn:
 
@@ -100,8 +100,6 @@ That lets you learn:
 - sync flow
 - drift reporting
 - health reporting
-
-before enabling automatic reconciliation.
 
 Because this repository is private, Argo CD will also need repository credentials before that first `Application` can sync successfully.
 
@@ -150,7 +148,7 @@ Do not move everything at once.
 
 ## Step 7. Enable Automation
 
-Only after the manual sync flow is understood and trusted:
+After the Git-driven flow is understood and trusted:
 
 - enable automated sync
 - enable self-heal
@@ -163,7 +161,7 @@ That turns Argo CD into the normal reconciliation mechanism instead of a dashboa
 1. Install Argo CD in the `argocd` namespace.
 2. Access it with port-forward first.
 3. Apply the prod and dev website `Application` resources.
-4. Keep sync manual first for prod.
+4. Keep production approval at Git merge time.
 5. Verify Argo CD can own and reconcile both applications.
 6. Update the production image tag in Git for each rollout.
 7. Bring platform resources under Argo CD incrementally.

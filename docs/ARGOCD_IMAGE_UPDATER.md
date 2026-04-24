@@ -66,9 +66,9 @@ It is configured to:
 
 - watch the Argo CD application `danielmtz-website-dev`
 - inspect `ghcr.io/danielmtzbarba/danielmtz-website`
-- only consider SHA-like tags via:
-  - `regexp:^[0-9a-f]{40}$`
-- use `newest-build` for immutable SHA tags
+- only consider branch-aware dev tags via:
+  - `regexp:^dev-[0-9a-f]{40}$`
+- use `newest-build` for immutable dev tags
 - write the selected tag back to:
   - `kubernetes/apps/danielmtz-website-dev-tls`
 
@@ -164,12 +164,13 @@ kubectl logs -n argocd deploy/argocd-image-updater-controller
 
 ## Expected Flow
 
-1. website repo pushes a new SHA-tagged image from `dev`
+1. website repo pushes a new branch-aware dev image tag such as `dev-<40-char-sha>`
 2. Image Updater detects the new image in GHCR
 3. Image Updater commits the updated image tag to:
    - `kubernetes/apps/danielmtz-website-dev-tls/kustomization.yaml`
 4. Argo CD sees the Git change
-5. the dev application syncs automatically
+5. Argo CD auto-syncs the dev application
+6. because the rendered Deployment image field changes to a new immutable tag, Kubernetes creates a new ReplicaSet and rolls out new pods for that image
 
 ## Important Boundary
 

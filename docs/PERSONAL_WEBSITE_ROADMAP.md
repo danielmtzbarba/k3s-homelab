@@ -41,7 +41,7 @@ It should remain:
 
 The intended production flow is:
 
-1. the website `prod` branch publishes a SHA-tagged image
+1. the website `prod` branch publishes a `prod-<40-char-sha>` image
 2. the website repo opens a PR against `k3s-homelab`
 3. that PR updates the prod app image tag in Git
 4. merge to `main` becomes the deploy approval
@@ -62,7 +62,7 @@ It should remain:
 
 The intended development flow is:
 
-1. the website `dev` branch publishes a SHA-tagged image
+1. the website `dev` branch publishes a `dev-<40-char-sha>` image
 2. Argo CD Image Updater detects the new image
 3. it writes the new dev tag back into this repo
 4. Argo CD auto-syncs the dev app
