@@ -1,0 +1,85 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observability-kube-prometheus-stack
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: observability
+    app.kubernetes.io/component: metrics
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 82.14.0
+    helm:
+      releaseName: kube-prometheus-stack
+      values: |
+        alertmanager:
+          enabled: false
+
+        grafana:
+          defaultDashboardsTimezone: utc
+          service:
+            type: ClusterIP
+          persistence:
+            enabled: false
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          additionalDataSources:
+            - name: Loki
+              type: loki
+              access: proxy
+              url: http://loki-gateway.observability.svc.cluster.local
+              isDefault: false
+              jsonData:
+                maxLines: 1000
+
+        kubeControllerManager:
+          enabled: false
+
+        kubeEtcd:
+          enabled: false
+
+        kubeScheduler:
+          enabled: false
+
+        prometheus:
+          service:
+            type: ClusterIP
+          prometheusSpec:
+            retention: 7d
+            retentionSize: 15GB
+            resources:
+              requests:
+                cpu: 300m
+                memory: 1Gi
+              limits:
+                cpu: "1"
+                memory: 2Gi
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 20Gi
+
+        prometheus-node-exporter:
+          enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

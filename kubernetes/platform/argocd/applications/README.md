@@ -12,6 +12,8 @@ Current website applications:
 
 - `danielmtz-website-prod.yaml`
 - `danielmtz-website-dev.yaml`
+- `observability-kube-prometheus-stack.yaml`
+- `observability-loki.yaml`
 
 Recommendation:
 

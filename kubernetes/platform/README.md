@@ -13,6 +13,9 @@ Current layout:
 - `cert-manager/`
   Helm values for the cert-manager add-on.
 
+- `observability/`
+  Helm values for Prometheus, Grafana, Loki, and related observability platform components.
+
 - `issuers/`
   Cluster-wide certificate issuer resources used by ingress TLS.
 

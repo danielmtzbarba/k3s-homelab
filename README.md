@@ -96,6 +96,7 @@ Project documentation lives in `docs/`:
 - [Argo CD Roadmap](docs/ARGOCD_ROADMAP.md)
 - [Argo CD Environment Roadmap](docs/ARGOCD_ENVIRONMENTS.md)
 - [Argo CD Image Updater](docs/ARGOCD_IMAGE_UPDATER.md)
+- [Observability](docs/OBSERVABILITY.md)
 
 These docs describe the repository as it exists today, not a future target architecture.
 
