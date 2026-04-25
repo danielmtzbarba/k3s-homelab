@@ -30,6 +30,9 @@ TAILSCALE_ENABLE="${TAILSCALE_ENABLE:-false}"
 TAILSCALE_AUTH_KEY="${TAILSCALE_AUTH_KEY:-}"
 TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME:-}"
 TAILSCALE_ACCEPT_DNS="${TAILSCALE_ACCEPT_DNS:-false}"
+K8S_SERVICE_ACCOUNT_ISSUER_ENABLE="${K8S_SERVICE_ACCOUNT_ISSUER_ENABLE:-false}"
+K8S_SERVICE_ACCOUNT_ISSUER_URL="${K8S_SERVICE_ACCOUNT_ISSUER_URL:-}"
+K8S_SERVICE_ACCOUNT_JWKS_URI="${K8S_SERVICE_ACCOUNT_JWKS_URI:-}"
 
 sudo mkdir -p /etc/modules-load.d /etc/sysctl.d
 
@@ -59,6 +62,28 @@ if [ -n "${PUBLIC_IP}" ]; then
 tls-san:
   - \"${PUBLIC_IP}\"
 EOF"
+fi
+
+if [ "${K8S_SERVICE_ACCOUNT_ISSUER_ENABLE}" = "true" ]; then
+  if [ -z "${K8S_SERVICE_ACCOUNT_ISSUER_URL}" ]; then
+    echo "K8S_SERVICE_ACCOUNT_ISSUER_ENABLE=true requires K8S_SERVICE_ACCOUNT_ISSUER_URL." >&2
+    exit 1
+  fi
+
+  TMP_ISSUER_CONFIG="$(mktemp)"
+  cat > "${TMP_ISSUER_CONFIG}" <<EOF
+kube-apiserver-arg:
+  - service-account-issuer=${K8S_SERVICE_ACCOUNT_ISSUER_URL}
+EOF
+
+  if [ -n "${K8S_SERVICE_ACCOUNT_JWKS_URI}" ]; then
+    cat >> "${TMP_ISSUER_CONFIG}" <<EOF
+  - service-account-jwks-uri=${K8S_SERVICE_ACCOUNT_JWKS_URI}
+EOF
+  fi
+
+  sudo cp "${TMP_ISSUER_CONFIG}" /etc/rancher/k3s/config.yaml.d/30-service-account-issuer.yaml
+  rm -f "${TMP_ISSUER_CONFIG}"
 fi
 
 TAILSCALE_IP=""
@@ -134,4 +159,5 @@ echo "  tailscale status"
 echo "  sudo systemctl status k3s --no-pager"
 echo "  sudo kubectl get nodes -o wide"
 echo "  sudo kubectl get pods -A"
+echo "  sudo kubectl get --raw /.well-known/openid-configuration"
 echo "  sudo ss -lntp | grep 6443"

@@ -4,6 +4,7 @@ set -eu
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
+REMOTE_LIB="${ROOT_DIR}/scripts/lib_remote_access.sh"
 BOOTSTRAP_DIR="${ROOT_DIR}/infra/terraform/bootstrap"
 SERVER_DIR="${ROOT_DIR}/infra/terraform/server"
 WORKER_DIR="${ROOT_DIR}/infra/terraform/worker"
@@ -16,9 +17,11 @@ Usage:
   sh scripts/infra.sh apply
   sh scripts/infra.sh server-setup
   sh scripts/infra.sh kubeconfig
+  sh scripts/infra.sh platform-bootstrap
   sh scripts/infra.sh deploy-addons
   sh scripts/infra.sh deploy-argocd
   sh scripts/infra.sh deploy-image-updater
+  sh scripts/infra.sh deploy-tailscale-operator
   sh scripts/infra.sh destroy
   sh scripts/infra.sh worker-destroy
   sh scripts/infra.sh destroy-backend
@@ -31,9 +34,11 @@ Commands:
   apply           Generate server Terraform inputs and run terraform apply.
   server-setup    Copy and run the VM-side k3s server setup script.
   kubeconfig      Fetch kubeconfig from the server and rewrite it for local use.
+  platform-bootstrap Reconcile the first platform layer after cluster access works.
   deploy-addons   Install cluster add-ons such as cert-manager and TLS ingress.
   deploy-argocd   Install or upgrade Argo CD with Helm.
   deploy-image-updater Install Argo CD Image Updater in the argocd namespace.
+  deploy-tailscale-operator Install or upgrade the Tailscale Kubernetes Operator.
   destroy         Destroy the server infrastructure stack.
   worker-destroy  Destroy the worker infrastructure stack.
   destroy-backend Destroy the backend bucket stack.
@@ -73,8 +78,12 @@ validate_env() {
 validate_prereqs() {
   require_cmd gcloud
   require_cmd terraform
+  require_file "${REMOTE_LIB}"
+  # shellcheck disable=SC1090
+  . "${REMOTE_LIB}"
   load_env
   validate_env
+  remote_require_mode_prereqs
 
   if [ -n "${SSH_PUBLIC_KEY_PATH:-}" ] && [ ! -f "${SSH_PUBLIC_KEY_PATH}" ]; then
     echo "SSH public key file not found: ${SSH_PUBLIC_KEY_PATH}" >&2
@@ -91,10 +100,13 @@ TAILSCALE_ENABLE="${TAILSCALE_ENABLE:-false}"
 TAILSCALE_AUTH_KEY="${TAILSCALE_AUTH_KEY:-}"
 TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME:-${SERVER_NAME}}"
 TAILSCALE_ACCEPT_DNS="${TAILSCALE_ACCEPT_DNS:-false}"
+K8S_SERVICE_ACCOUNT_ISSUER_ENABLE="${K8S_SERVICE_ACCOUNT_ISSUER_ENABLE:-false}"
+K8S_SERVICE_ACCOUNT_ISSUER_URL="${K8S_SERVICE_ACCOUNT_ISSUER_URL:-}"
+K8S_SERVICE_ACCOUNT_JWKS_URI="${K8S_SERVICE_ACCOUNT_JWKS_URI:-}"
 EOF
-  gcloud compute scp "./scripts/k3s_server_setup.sh" "${SERVER_NAME}:~/k3s_server_setup.sh" --zone="${ZONE}"
-  gcloud compute scp "${TMP_SERVER_ENV}" "${SERVER_NAME}:~/k3s_server_setup.env" --zone="${ZONE}"
-  gcloud compute ssh "${SERVER_NAME}" --zone="${ZONE}" --command="set -a && . ~/k3s_server_setup.env && set +a && chmod +x ~/k3s_server_setup.sh && sh ~/k3s_server_setup.sh && rm -f ~/k3s_server_setup.env"
+  remote_copy_to "./scripts/k3s_server_setup.sh" "k3s_server_setup.sh"
+  remote_copy_to "${TMP_SERVER_ENV}" "k3s_server_setup.env"
+  remote_run "set -a && . \"\$HOME/k3s_server_setup.env\" && set +a && chmod +x \"\$HOME/k3s_server_setup.sh\" && sh \"\$HOME/k3s_server_setup.sh\" && rm -f \"\$HOME/k3s_server_setup.env\""
   rm -f "${TMP_SERVER_ENV}"
 }
 
@@ -140,6 +152,31 @@ run_kubeconfig() {
   sh ./scripts/fetch_kubeconfig.sh
 }
 
+run_platform_bootstrap() {
+  echo "Bootstrapping platform components..."
+  echo "  1. cert-manager and shared issuer"
+  echo "  2. Argo CD"
+  echo "  3. Tailscale operator secret stack, if .gcp-secrets.env exists"
+  echo "  4. Tailscale Kubernetes Operator"
+  echo
+
+  run_deploy_addons
+  run_deploy_argocd
+
+  if [ -f "${ROOT_DIR}/.gcp-secrets.env" ]; then
+    echo "Configuring Tailscale operator secret stack from .gcp-secrets.env..."
+    cd "${ROOT_DIR}"
+    sh ./scripts/setup_tailscale_operator_secret_stack.sh
+    run_deploy_tailscale_operator
+  else
+    echo "Skipping Tailscale operator bootstrap."
+    echo "Provide .gcp-secrets.env for the ESO-managed path."
+  fi
+
+  echo
+  echo "Platform bootstrap finished."
+}
+
 run_deploy_addons() {
   echo "Deploying cluster add-ons..."
   cd "${ROOT_DIR}"
@@ -156,6 +193,12 @@ run_deploy_image_updater() {
   echo "Deploying Argo CD Image Updater..."
   cd "${ROOT_DIR}"
   sh ./scripts/deploy_argocd_image_updater.sh
+}
+
+run_deploy_tailscale_operator() {
+  echo "Deploying the Tailscale Kubernetes Operator..."
+  cd "${ROOT_DIR}"
+  sh ./scripts/deploy_tailscale_operator.sh
 }
 
 run_destroy_server() {
@@ -270,6 +313,9 @@ main() {
     kubeconfig)
       run_kubeconfig
       ;;
+    platform-bootstrap)
+      run_platform_bootstrap
+      ;;
     deploy-addons)
       run_deploy_addons
       ;;
@@ -278,6 +324,9 @@ main() {
       ;;
     deploy-image-updater)
       run_deploy_image_updater
+      ;;
+    deploy-tailscale-operator)
+      run_deploy_tailscale_operator
       ;;
     destroy)
       run_destroy_server

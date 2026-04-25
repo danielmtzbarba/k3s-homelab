@@ -12,8 +12,11 @@ Current website applications:
 
 - `danielmtz-website-prod.yaml`
 - `danielmtz-website-dev.yaml`
+- `external-secrets.yaml`
 - `observability-kube-prometheus-stack.yaml`
 - `observability-loki.yaml`
+- `observability-dashboards.yaml`
+- `tailscale-private-access.yaml`
 
 Recommendation:
 

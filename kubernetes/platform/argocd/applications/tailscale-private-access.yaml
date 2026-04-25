@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tailscale-private-access
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: tailscale-private-access
+    app.kubernetes.io/component: ingress
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:danielmtzbarba/k3s-homelab.git
+    targetRevision: main
+    path: kubernetes/platform/tailscale-operator
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tailscale
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -13,8 +13,14 @@ Current layout:
 - `cert-manager/`
   Helm values for the cert-manager add-on.
 
+- `external-secrets/`
+  Helm values and secret-management scaffolding for External Secrets Operator.
+
 - `observability/`
   Helm values for Prometheus, Grafana, Loki, and related observability platform components.
+
+- `tailscale-operator/`
+  Private tailnet-only ingress scaffolding for internal UIs such as Grafana and Argo CD.
 
 - `issuers/`
   Cluster-wide certificate issuer resources used by ingress TLS.

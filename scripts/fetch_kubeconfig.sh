@@ -4,9 +4,10 @@ set -eu
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
+REMOTE_LIB="${ROOT_DIR}/scripts/lib_remote_access.sh"
 SERVER_SETUP_SCRIPT_LOCAL="${ROOT_DIR}/scripts/k3s_server_setup.sh"
-SERVER_SETUP_SCRIPT_REMOTE="~/k3s_server_setup.sh"
-SERVER_SETUP_ENV_REMOTE="~/k3s_server_setup.env"
+SERVER_SETUP_SCRIPT_REMOTE="k3s_server_setup.sh"
+SERVER_SETUP_ENV_REMOTE="k3s_server_setup.env"
 
 if [ ! -f "${ENV_FILE}" ]; then
   echo ".env not found at ${ENV_FILE}" >&2
@@ -17,6 +18,14 @@ if [ ! -f "${SERVER_SETUP_SCRIPT_LOCAL}" ]; then
   echo "Server setup script not found at ${SERVER_SETUP_SCRIPT_LOCAL}" >&2
   exit 1
 fi
+
+if [ ! -f "${REMOTE_LIB}" ]; then
+  echo "Remote access helper not found at ${REMOTE_LIB}" >&2
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+. "${REMOTE_LIB}"
 
 set -a
 . "${ENV_FILE}"
@@ -29,7 +38,12 @@ TAILSCALE_ENABLE="${TAILSCALE_ENABLE:-false}"
 TAILSCALE_AUTH_KEY="${TAILSCALE_AUTH_KEY:-}"
 TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME:-${SERVER_NAME}}"
 TAILSCALE_ACCEPT_DNS="${TAILSCALE_ACCEPT_DNS:-false}"
+K8S_SERVICE_ACCOUNT_ISSUER_ENABLE="${K8S_SERVICE_ACCOUNT_ISSUER_ENABLE:-false}"
+K8S_SERVICE_ACCOUNT_ISSUER_URL="${K8S_SERVICE_ACCOUNT_ISSUER_URL:-}"
+K8S_SERVICE_ACCOUNT_JWKS_URI="${K8S_SERVICE_ACCOUNT_JWKS_URI:-}"
 KUBECONFIG_ENDPOINT_MODE="${KUBECONFIG_ENDPOINT_MODE:-public}"
+
+remote_require_mode_prereqs
 
 DEST="${HOME}/.kube/config-k3s-lab"
 TMP_FILE="$(mktemp)"
@@ -43,14 +57,17 @@ TAILSCALE_ENABLE="${TAILSCALE_ENABLE}"
 TAILSCALE_AUTH_KEY="${TAILSCALE_AUTH_KEY}"
 TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME}"
 TAILSCALE_ACCEPT_DNS="${TAILSCALE_ACCEPT_DNS}"
+K8S_SERVICE_ACCOUNT_ISSUER_ENABLE="${K8S_SERVICE_ACCOUNT_ISSUER_ENABLE}"
+K8S_SERVICE_ACCOUNT_ISSUER_URL="${K8S_SERVICE_ACCOUNT_ISSUER_URL}"
+K8S_SERVICE_ACCOUNT_JWKS_URI="${K8S_SERVICE_ACCOUNT_JWKS_URI}"
 EOF
 
 echo "Copying server setup script to VM..."
-gcloud compute scp "${SERVER_SETUP_SCRIPT_LOCAL}" "${SERVER_NAME}:${SERVER_SETUP_SCRIPT_REMOTE}" --zone="${ZONE}"
-gcloud compute scp "${TMP_ENV_FILE}" "${SERVER_NAME}:${SERVER_SETUP_ENV_REMOTE}" --zone="${ZONE}"
+remote_copy_to "${SERVER_SETUP_SCRIPT_LOCAL}" "${SERVER_SETUP_SCRIPT_REMOTE}"
+remote_copy_to "${TMP_ENV_FILE}" "${SERVER_SETUP_ENV_REMOTE}"
 
 echo "Running server setup script on VM..."
-if ! gcloud compute ssh "${SERVER_NAME}" --zone="${ZONE}" --command="set -a && . ${SERVER_SETUP_ENV_REMOTE} && set +a && chmod +x ${SERVER_SETUP_SCRIPT_REMOTE} && sh ${SERVER_SETUP_SCRIPT_REMOTE} && rm -f ${SERVER_SETUP_ENV_REMOTE} && echo '__CODEX_TAILSCALE_IP_START__' && tailscale ip -4 2>/dev/null | head -n 1 && echo '__CODEX_TAILSCALE_IP_END__' && echo '__CODEX_KUBECONFIG_START__' && sudo cat /etc/rancher/k3s/k3s.yaml && echo '__CODEX_KUBECONFIG_END__'" > "${TMP_OUTPUT_FILE}"; then
+if ! remote_run "set -a && . \"\$HOME/${SERVER_SETUP_ENV_REMOTE}\" && set +a && chmod +x \"\$HOME/${SERVER_SETUP_SCRIPT_REMOTE}\" && sh \"\$HOME/${SERVER_SETUP_SCRIPT_REMOTE}\" && rm -f \"\$HOME/${SERVER_SETUP_ENV_REMOTE}\" && echo '__CODEX_TAILSCALE_IP_START__' && tailscale ip -4 2>/dev/null | head -n 1 && echo '__CODEX_TAILSCALE_IP_END__' && echo '__CODEX_KUBECONFIG_START__' && sudo cat /etc/rancher/k3s/k3s.yaml && echo '__CODEX_KUBECONFIG_END__'" > "${TMP_OUTPUT_FILE}"; then
   echo "Could not complete server setup and kubeconfig retrieval from the server." >&2
   rm -f "${TMP_ENV_FILE}"
   rm -f "${TMP_OUTPUT_FILE}"
