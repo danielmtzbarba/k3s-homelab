@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observability-dashboards
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: observability
+    app.kubernetes.io/component: dashboards
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:danielmtzbarba/k3s-homelab.git
+    targetRevision: main
+    path: kubernetes/platform/observability/dashboards
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

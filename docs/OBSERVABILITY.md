@@ -79,6 +79,23 @@ Grafana is configured with a Loki datasource through the Prometheus stack values
 
 That means once Loki is healthy, Grafana can query logs without manual datasource setup.
 
+## Grafana Dashboards
+
+Custom Grafana dashboards should be provisioned from Git, not created only in the UI.
+
+This repository now uses:
+
+- `kubernetes/platform/observability/dashboards/`
+  Kustomize-generated ConfigMaps labeled with `grafana_dashboard=1`
+
+- `kubernetes/platform/argocd/applications/observability-dashboards.yaml`
+  Argo CD application for the provisioned dashboards path
+
+The first dashboard is:
+
+- `K3s Cluster Overview`
+  Focused on node health, resource pressure, pod scheduling, and restart signals for the server and worker nodes
+
 ## Apply Path
 
 After Argo CD is installed and repository credentials are configured, apply:

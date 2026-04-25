@@ -22,6 +22,12 @@ spec:
           defaultDashboardsTimezone: utc
           service:
             type: ClusterIP
+          sidecar:
+            dashboards:
+              enabled: true
+              label: grafana_dashboard
+              labelValue: "1"
+              searchNamespace: observability
           persistence:
             enabled: false
           resources:

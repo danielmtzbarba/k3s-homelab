@@ -22,6 +22,9 @@ Current design choices:
 - `loki-values.yaml`
   Values for a small single-binary Loki install.
 
+- `dashboards/`
+  Provisioned Grafana dashboards that are loaded through the Grafana dashboard sidecar.
+
 ## Node Exporter
 
 Keep node exporter enabled.
