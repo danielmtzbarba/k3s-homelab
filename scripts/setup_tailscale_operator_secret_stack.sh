@@ -9,6 +9,7 @@ STORE_TEMPLATE="${ROOT_DIR}/kubernetes/platform/external-secrets/clustersecretst
 SERVICE_ACCOUNT_MANIFEST="${ROOT_DIR}/kubernetes/platform/external-secrets/serviceaccount-gcpsm.yaml"
 TAILSCALE_EXTERNAL_SECRET_MANIFEST="${ROOT_DIR}/kubernetes/platform/tailscale-operator/externalsecret-operator-oauth.yaml"
 GRAFANA_EXTERNAL_SECRET_MANIFEST="${ROOT_DIR}/kubernetes/platform/observability/externalsecret-grafana-admin.yaml"
+ALERTMANAGER_EXTERNAL_SECRET_MANIFEST="${ROOT_DIR}/kubernetes/platform/observability/externalsecret-alertmanager-slack-webhook.yaml"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -57,6 +58,7 @@ require_file "${STORE_TEMPLATE}"
 require_file "${SERVICE_ACCOUNT_MANIFEST}"
 require_file "${TAILSCALE_EXTERNAL_SECRET_MANIFEST}"
 require_file "${GRAFANA_EXTERNAL_SECRET_MANIFEST}"
+require_file "${ALERTMANAGER_EXTERNAL_SECRET_MANIFEST}"
 
 load_env_file "${GCP_SECRETS_ENV_FILE}"
 require_env PROJECT_ID "${PROJECT_ID:-}"
@@ -88,6 +90,11 @@ kubectl apply -f "${TAILSCALE_EXTERNAL_SECRET_MANIFEST}"
 echo "Applying Grafana admin ExternalSecret..."
 kubectl apply -f "${GRAFANA_EXTERNAL_SECRET_MANIFEST}"
 
+if [ -n "${GCP_SECRET_ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ] && [ -n "${ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ]; then
+  echo "Applying Alertmanager Slack webhook ExternalSecret..."
+  kubectl apply -f "${ALERTMANAGER_EXTERNAL_SECRET_MANIFEST}"
+fi
+
 echo "Waiting for operator-oauth secret to exist..."
 ATTEMPTS=0
 until kubectl get secret operator-oauth -n tailscale >/dev/null 2>&1; do
@@ -112,6 +119,20 @@ until kubectl get secret grafana-admin-credentials -n observability >/dev/null 2
   sleep 5
 done
 
+if [ -n "${GCP_SECRET_ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ] && [ -n "${ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ]; then
+  echo "Waiting for observability/alertmanager-slack-webhook to exist..."
+  ATTEMPTS=0
+  until kubectl get secret alertmanager-slack-webhook -n observability >/dev/null 2>&1; do
+    ATTEMPTS=$((ATTEMPTS + 1))
+    if [ "${ATTEMPTS}" -ge 36 ]; then
+      echo "Timed out waiting for observability/alertmanager-slack-webhook to be created." >&2
+      kubectl describe externalsecret alertmanager-slack-webhook -n observability || true
+      exit 1
+    fi
+    sleep 5
+  done
+fi
+
 echo
 echo "Tailscale secret stack is configured."
 echo "Verification commands:"
@@ -120,4 +141,8 @@ echo "  kubectl get externalsecret -n tailscale operator-oauth"
 echo "  kubectl get secret -n tailscale operator-oauth"
 echo "  kubectl get externalsecret -n observability grafana-admin-credentials"
 echo "  kubectl get secret -n observability grafana-admin-credentials"
+if [ -n "${GCP_SECRET_ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ] && [ -n "${ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ]; then
+  echo "  kubectl get externalsecret -n observability alertmanager-slack-webhook"
+  echo "  kubectl get secret -n observability alertmanager-slack-webhook"
+fi
 echo "  sh scripts/infra.sh deploy-tailscale-operator"

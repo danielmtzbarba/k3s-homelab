@@ -77,7 +77,9 @@ Use the wrappers in this order unless you are debugging a specific layer.
 ### Secret Management
 
 - `sync_gcp_secrets.sh`
-  Sync local secret values into GCP Secret Manager and re-apply secret-level IAM bindings.
+  Sync local secret values into GCP Secret Manager.
+  Default mode creates missing secrets and skips existing ones.
+  Use `--delete-existing` to force delete/recreate mode and re-apply secret-level IAM bindings.
 
 - `setup_tailscale_operator_secret_stack.sh`
   End-to-end wrapper for the Tailscale operator secret path:

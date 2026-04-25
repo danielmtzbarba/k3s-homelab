@@ -7,6 +7,7 @@ Current target:
 - Prometheus
 - Grafana
 - Loki
+- Alertmanager
 
 This stack is intentionally platform-level and Helm-managed.
 
@@ -39,7 +40,7 @@ Prometheus and Grafana are installed with `kube-prometheus-stack`.
 
 Current choices:
 
-- `alertmanager` disabled for now
+- `alertmanager` enabled with Slack routing via `AlertmanagerConfig`
 - Grafana private inside the cluster
 - Prometheus persistence enabled
 - Grafana persistence enabled
@@ -103,6 +104,17 @@ Grafana also uses:
   ESO-managed stable admin credentials
 
 This avoids password churn during Helm reconciliation and keeps login state stable across Grafana pod restarts when persistence is enabled.
+
+Alerting uses:
+
+- `kubernetes/platform/observability/prometheusrule-cluster-alerts.yaml`
+  First cluster alert rules for node health, resource pressure, and restart failures
+
+- `kubernetes/platform/observability/alertmanagerconfig-slack.yaml`
+  Slack notification routing for Alertmanager
+
+- `kubernetes/platform/observability/externalsecret-alertmanager-slack-webhook.yaml`
+  ESO-managed Slack webhook secret for Alertmanager
 
 ## Apply Path
 

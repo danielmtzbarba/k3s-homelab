@@ -3,7 +3,47 @@
 set -eu
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SECRETS_ENV_FILE="${1:-${ROOT_DIR}/.gcp-secrets.env}"
+SECRETS_ENV_FILE="${ROOT_DIR}/.gcp-secrets.env"
+RECREATE_EXISTING="false"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  sh scripts/sync_gcp_secrets.sh [--delete-existing] [path-to-env-file]
+
+Behavior:
+  - default: create missing secrets only, skip secrets that already exist
+  - --delete-existing: delete and recreate existing secrets before syncing
+EOF
+}
+
+parse_args() {
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --delete-existing)
+        RECREATE_EXISTING="true"
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      -*)
+        echo "Unknown option: $1" >&2
+        usage >&2
+        exit 1
+        ;;
+      *)
+        if [ "${SECRETS_ENV_FILE}" != "${ROOT_DIR}/.gcp-secrets.env" ]; then
+          echo "Only one env file path may be provided." >&2
+          usage >&2
+          exit 1
+        fi
+        SECRETS_ENV_FILE="$1"
+        ;;
+    esac
+    shift
+  done
+}
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -51,8 +91,13 @@ sync_secret() {
   echo "Syncing ${SECRET_ID} from ${VALUE_VAR}..."
 
   if gcloud secrets describe "${SECRET_ID}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
-    echo "  deleting existing secret ${SECRET_ID} to avoid version buildup..."
-    gcloud secrets delete "${SECRET_ID}" --project="${PROJECT_ID}" --quiet
+    if [ "${RECREATE_EXISTING}" = "true" ]; then
+      echo "  deleting existing secret ${SECRET_ID} before recreation..."
+      gcloud secrets delete "${SECRET_ID}" --project="${PROJECT_ID}" --quiet
+    else
+      echo "  secret ${SECRET_ID} already exists, skipping."
+      return
+    fi
   fi
 
   printf '%s' "${SECRET_VALUE}" | \
@@ -74,6 +119,7 @@ sync_secret() {
 
 require_cmd gcloud
 require_cmd printenv
+parse_args "$@"
 require_file "${SECRETS_ENV_FILE}"
 load_env
 require_env PROJECT_ID "${PROJECT_ID:-}"
@@ -90,4 +136,8 @@ for MAPPING_VAR in ${MAPPING_VARS}; do
 done
 
 echo
-echo "Synced secrets to GCP Secret Manager for project ${PROJECT_ID}."
+if [ "${RECREATE_EXISTING}" = "true" ]; then
+  echo "Synced secrets to GCP Secret Manager for project ${PROJECT_ID} using delete/recreate mode."
+else
+  echo "Synced missing secrets to GCP Secret Manager for project ${PROJECT_ID}; existing secrets were skipped."
+fi

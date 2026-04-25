@@ -44,7 +44,7 @@ resource "google_compute_firewall" "node_internal" {
 
   allow {
     protocol = "tcp"
-    ports    = ["2379-2380", "10250", "30000-32767"]
+    ports    = ["2379-2380", "9100", "10250", "30000-32767"]
   }
 
   allow {

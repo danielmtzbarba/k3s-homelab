@@ -1,0 +1,41 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: platform-slack
+  namespace: observability
+  labels:
+    alertmanagerConfig: platform
+spec:
+  route:
+    groupBy:
+      - alertname
+      - namespace
+      - node
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+    receiver: slack-default
+  receivers:
+    - name: slack-default
+      slackConfigs:
+        - sendResolved: true
+          apiURL:
+            name: alertmanager-slack-webhook
+            key: url
+          title: >-
+            [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}
+          text: >-
+            {{ range .Alerts -}}
+            *Alert:* {{ .Annotations.summary }}
+            *Severity:* {{ .Labels.severity }}
+            {{- if .Labels.namespace }}
+            *Namespace:* {{ .Labels.namespace }}
+            {{- end }}
+            {{- if .Labels.node }}
+            *Node:* {{ .Labels.node }}
+            {{- end }}
+            {{- if .Annotations.description }}
+            *Description:* {{ .Annotations.description }}
+            {{- end }}
+
+            {{ end }}

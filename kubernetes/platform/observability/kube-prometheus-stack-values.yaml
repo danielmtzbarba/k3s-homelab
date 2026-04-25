@@ -1,5 +1,20 @@
 alertmanager:
-  enabled: false
+  enabled: true
+  service:
+    type: ClusterIP
+  alertmanagerSpec:
+    replicas: 1
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 2Gi
+    alertmanagerConfigSelector:
+      matchLabels:
+        alertmanagerConfig: platform
 
 grafana:
   defaultDashboardsTimezone: utc

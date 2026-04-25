@@ -30,6 +30,7 @@ Use these classes consistently:
 | `TAILSCALE_OAUTH_CLIENT_SECRET` | Tailscale Operator bootstrap only | local `.gcp-secrets.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `tailscale/operator-oauth` |
 | `GRAFANA_ADMIN_USER` | Grafana admin login username | local `.gcp-secrets.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `observability/grafana-admin-credentials` |
 | `GRAFANA_ADMIN_PASSWORD` | Grafana admin login password | local `.gcp-secrets.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `observability/grafana-admin-credentials` |
+| `ALERTMANAGER_SLACK_WEBHOOK_URL` | Alertmanager Slack delivery | local `.gcp-secrets.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `observability/alertmanager-slack-webhook` |
 | `repo-k3s-homelab` SSH deploy key | Argo CD repository access | Manual `kubectl create secret` in [docs/ARGOCD.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/docs/ARGOCD.md) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `argocd/repo-k3s-homelab` |
 | `k3s-homelab-writeback` GitHub token | Argo CD Image Updater Git write-back | Manual `kubectl create secret` in [docs/ARGOCD_IMAGE_UPDATER.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/docs/ARGOCD_IMAGE_UPDATER.md) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `argocd/k3s-homelab-writeback` |
 | `argocd/ghcr-pull-secret` | Argo CD Image Updater registry read access | Manual `kubectl create secret docker-registry` in [docs/ARGOCD_IMAGE_UPDATER.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/docs/ARGOCD_IMAGE_UPDATER.md) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `argocd/ghcr-pull-secret` |
@@ -94,7 +95,14 @@ GCP_SECRET_GRAFANA_ADMIN_PASSWORD="k3s-grafana-admin-password"
 GRAFANA_ADMIN_PASSWORD="..."
 ```
 
-The script deletes and recreates each target secret before uploading the current value. That avoids secret-version growth, but it also resets secret-level IAM bindings. To compensate, set:
+```bash
+GCP_SECRET_ALERTMANAGER_SLACK_WEBHOOK_URL="k3s-alertmanager-slack-webhook-url"
+ALERTMANAGER_SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
+```
+
+By default, the script only creates missing secrets and skips any secret that already exists. That is the safe mode for repeated bootstrap runs.
+
+If you want the old delete/recreate behavior to avoid version buildup, pass `--delete-existing`. That also resets secret-level IAM bindings, so set:
 
 ```bash
 GCP_SECRET_ACCESSORS="principal://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/subject/system:serviceaccount:external-secrets:eso-gcpsm"
@@ -105,6 +113,12 @@ Then run:
 ```bash
 cp .gcp-secrets.env.example .gcp-secrets.env
 sh scripts/sync_gcp_secrets.sh
+```
+
+To force delete/recreate mode:
+
+```bash
+sh scripts/sync_gcp_secrets.sh --delete-existing
 ```
 
 For the current platform secret stack, the wrapper path is:
