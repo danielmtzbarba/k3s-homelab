@@ -19,6 +19,9 @@ Current layout:
 - `observability/`
   Helm values for Prometheus, Grafana, Loki, and related observability platform components.
 
+- `promtail/`
+  Kubernetes pod log collector that forwards logs into Loki.
+
 - `tailscale-operator/`
   Private tailnet-only ingress scaffolding for internal UIs such as Grafana and Argo CD.
 

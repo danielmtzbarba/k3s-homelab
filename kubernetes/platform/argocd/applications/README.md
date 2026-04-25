@@ -18,6 +18,7 @@ Current website applications:
 - `external-secrets.yaml`
 - `observability-kube-prometheus-stack.yaml`
 - `observability-loki.yaml`
+- `observability-promtail.yaml`
 - `observability-dashboards.yaml`
 - `tailscale-private-access.yaml`
 

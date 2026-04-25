@@ -13,3 +13,9 @@ configMapGenerator:
   - name: k3s-cluster-overview-dashboard
     files:
       - k3s-cluster-overview.json
+  - name: quant-engine-messaging-flow-dashboard
+    files:
+      - quant-engine-messaging-flow.json
+  - name: quant-engine-system-overview-dashboard
+    files:
+      - quant-engine-system-overview.json

@@ -6,12 +6,14 @@ resources:
   - core-externalsecret.yaml
   - core-deployment.yaml
   - core-service.yaml
+  - core-servicemonitor.yaml
   - messaging-configmap.yaml
   - messaging-externalsecret.yaml
   - messaging-deployment.yaml
   - messaging-service.yaml
+  - messaging-servicemonitor.yaml
 images:
   - name: ghcr.io/danielmtzbarba/core_service
-    newTag: ghcr.io/danielmtzbarba/core_service:1741afff0ace1a0a08fa73bc7e368642954a23ba
+    newTag: 1741afff0ace1a0a08fa73bc7e368642954a23ba
   - name: ghcr.io/danielmtzbarba/messaging_service
-    newTag: ghcr.io/danielmtzbarba/messaging_service:1741afff0ace1a0a08fa73bc7e368642954a23ba
+    newTag: 1741afff0ace1a0a08fa73bc7e368642954a23ba

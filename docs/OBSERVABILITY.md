@@ -116,6 +116,13 @@ Alerting uses:
 - `kubernetes/platform/observability/externalsecret-alertmanager-slack-webhook.yaml`
   ESO-managed Slack webhook secret for Alertmanager
 
+The observability package also provisions `quant-engine` dashboards for the first migrated app slice:
+
+- `Quant Engine System Overview`
+- `Quant Engine Messaging Flow`
+
+These dashboards use Prometheus for service metrics and Loki for log panels.
+
 ## Apply Path
 
 After Argo CD is installed and repository credentials are configured, apply:
@@ -140,3 +147,8 @@ Loki alone does not collect logs.
 It stores and serves logs once an agent sends them there.
 
 The next observability step after this stack is to add a supported log collector, preferably Grafana Alloy rather than Promtail.
+
+Until that collector exists:
+
+- metrics dashboards should work once the service `ServiceMonitor` resources are applied
+- Loki log panels will remain empty because Loki is not yet receiving Kubernetes pod logs

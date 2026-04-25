@@ -6,10 +6,12 @@ resources:
   - core-externalsecret.yaml
   - core-deployment.yaml
   - core-service.yaml
+  - core-servicemonitor.yaml
   - messaging-configmap.yaml
   - messaging-externalsecret.yaml
   - messaging-deployment.yaml
   - messaging-service.yaml
+  - messaging-servicemonitor.yaml
 images:
   - name: ghcr.io/danielmtzbarba/core_service
     newTag: prod-bootstrap
