@@ -43,6 +43,7 @@ Current choices:
 - Grafana private inside the cluster
 - Prometheus persistence enabled
 - Grafana persistence enabled
+- Grafana admin credentials sourced from an `ExternalSecret` instead of a chart-generated random secret
 - `kube-etcd`, controller-manager, and scheduler scraping disabled because the first k3s target here is a practical working baseline, not full control-plane scraping perfection
 
 ### Logs
@@ -95,6 +96,13 @@ The first dashboard is:
 
 - `K3s Cluster Overview`
   Focused on node health, resource pressure, pod scheduling, and restart signals for the server and worker nodes
+
+Grafana also uses:
+
+- `kubernetes/platform/observability/externalsecret-grafana-admin.yaml`
+  ESO-managed stable admin credentials
+
+This avoids password churn during Helm reconciliation and keeps login state stable across Grafana pod restarts when persistence is enabled.
 
 ## Apply Path
 

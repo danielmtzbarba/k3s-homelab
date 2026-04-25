@@ -78,7 +78,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(max by (instance) (up{job=\"prometheus-node-exporter\"}))",
+          "expr": "sum(max by (instance) (up{job=\"node-exporter\"}))",
           "instant": true,
           "legendFormat": "",
           "range": false,
@@ -335,7 +335,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 * (1 - avg by (nodename) ((rate(node_cpu_seconds_total{job=\"prometheus-node-exporter\",mode=\"idle\"}[5m])) * on(instance) group_left(nodename) node_uname_info{job=\"prometheus-node-exporter\",nodename=~\"$node\"}))",
+          "expr": "100 * (1 - avg by (nodename) ((rate(node_cpu_seconds_total{job=\"node-exporter\",mode=\"idle\"}[5m])) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\",nodename=~\"$node\"}))",
           "legendFormat": "{{nodename}}",
           "refId": "A"
         }
@@ -399,7 +399,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 * (1 - avg by (nodename) (((node_memory_MemAvailable_bytes{job=\"prometheus-node-exporter\"} / node_memory_MemTotal_bytes{job=\"prometheus-node-exporter\"}) * on(instance) group_left(nodename) node_uname_info{job=\"prometheus-node-exporter\",nodename=~\"$node\"})))",
+          "expr": "100 * (1 - avg by (nodename) (((node_memory_MemAvailable_bytes{job=\"node-exporter\"} / node_memory_MemTotal_bytes{job=\"node-exporter\"}) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\",nodename=~\"$node\"})))",
           "legendFormat": "{{nodename}}",
           "refId": "A"
         }
@@ -463,7 +463,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 * avg by (nodename) (((1 - (node_filesystem_avail_bytes{job=\"prometheus-node-exporter\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"prometheus-node-exporter\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"})) * on(instance) group_left(nodename) node_uname_info{job=\"prometheus-node-exporter\",nodename=~\"$node\"}))",
+          "expr": "100 * avg by (nodename) (((1 - (node_filesystem_avail_bytes{job=\"node-exporter\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"node-exporter\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"})) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\",nodename=~\"$node\"}))",
           "legendFormat": "{{nodename}}",
           "refId": "A"
         }
@@ -544,13 +544,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (nodename) (rate(node_network_receive_bytes_total{job=\"prometheus-node-exporter\",device!~\"lo|veth.*|cni.*|flannel.*\"}[5m]) * on(instance) group_left(nodename) node_uname_info{job=\"prometheus-node-exporter\",nodename=~\"$node\"})",
+          "expr": "sum by (nodename) (rate(node_network_receive_bytes_total{job=\"node-exporter\",device!~\"lo|veth.*|cni.*|flannel.*\"}[5m]) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\",nodename=~\"$node\"})",
           "legendFormat": "{{nodename}} rx",
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "sum by (nodename) (rate(node_network_transmit_bytes_total{job=\"prometheus-node-exporter\",device!~\"lo|veth.*|cni.*|flannel.*\"}[5m]) * on(instance) group_left(nodename) node_uname_info{job=\"prometheus-node-exporter\",nodename=~\"$node\"})",
+          "expr": "sum by (nodename) (rate(node_network_transmit_bytes_total{job=\"node-exporter\",device!~\"lo|veth.*|cni.*|flannel.*\"}[5m]) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\",nodename=~\"$node\"})",
           "legendFormat": "{{nodename}} tx",
           "refId": "B"
         }
@@ -836,7 +836,7 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(node_uname_info{job=\"prometheus-node-exporter\"}, nodename)",
+        "definition": "label_values(node_uname_info{job=\"node-exporter\"}, nodename)",
         "hide": 0,
         "includeAll": true,
         "label": "Node",
@@ -844,7 +844,7 @@
         "name": "node",
         "options": [],
         "query": {
-          "query": "label_values(node_uname_info{job=\"prometheus-node-exporter\"}, nodename)",
+          "query": "label_values(node_uname_info{job=\"node-exporter\"}, nodename)",
           "refId": "Prometheus-node-var"
         },
         "refresh": 1,

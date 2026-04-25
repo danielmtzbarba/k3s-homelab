@@ -20,6 +20,10 @@ spec:
 
         grafana:
           defaultDashboardsTimezone: utc
+          admin:
+            existingSecret: grafana-admin-credentials
+            userKey: admin-user
+            passwordKey: admin-password
           service:
             type: ClusterIP
           sidecar:
@@ -29,7 +33,8 @@ spec:
               labelValue: "1"
               searchNamespace: observability
           persistence:
-            enabled: false
+            enabled: true
+            size: 10Gi
           resources:
             requests:
               cpu: 100m

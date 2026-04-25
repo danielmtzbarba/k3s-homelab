@@ -7,7 +7,8 @@ KUBECONFIG_PATH="${KUBECONFIG:-${HOME}/.kube/config-k3s-lab}"
 GCP_SECRETS_ENV_FILE="${1:-${ROOT_DIR}/.gcp-secrets.env}"
 STORE_TEMPLATE="${ROOT_DIR}/kubernetes/platform/external-secrets/clustersecretstore-gcpsm-wif.example.yaml"
 SERVICE_ACCOUNT_MANIFEST="${ROOT_DIR}/kubernetes/platform/external-secrets/serviceaccount-gcpsm.yaml"
-TAILSCALE_EXTERNAL_SECRET_MANIFEST="${ROOT_DIR}/kubernetes/platform/tailscale-operator/externalsecret-operator-oauth.example.yaml"
+TAILSCALE_EXTERNAL_SECRET_MANIFEST="${ROOT_DIR}/kubernetes/platform/tailscale-operator/externalsecret-operator-oauth.yaml"
+GRAFANA_EXTERNAL_SECRET_MANIFEST="${ROOT_DIR}/kubernetes/platform/observability/externalsecret-grafana-admin.yaml"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -55,6 +56,7 @@ require_file "${GCP_SECRETS_ENV_FILE}"
 require_file "${STORE_TEMPLATE}"
 require_file "${SERVICE_ACCOUNT_MANIFEST}"
 require_file "${TAILSCALE_EXTERNAL_SECRET_MANIFEST}"
+require_file "${GRAFANA_EXTERNAL_SECRET_MANIFEST}"
 
 load_env_file "${GCP_SECRETS_ENV_FILE}"
 require_env PROJECT_ID "${PROJECT_ID:-}"
@@ -83,6 +85,9 @@ kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Ready")].status}'=Tr
 echo "Applying Tailscale operator ExternalSecret..."
 kubectl apply -f "${TAILSCALE_EXTERNAL_SECRET_MANIFEST}"
 
+echo "Applying Grafana admin ExternalSecret..."
+kubectl apply -f "${GRAFANA_EXTERNAL_SECRET_MANIFEST}"
+
 echo "Waiting for operator-oauth secret to exist..."
 ATTEMPTS=0
 until kubectl get secret operator-oauth -n tailscale >/dev/null 2>&1; do
@@ -95,10 +100,24 @@ until kubectl get secret operator-oauth -n tailscale >/dev/null 2>&1; do
   sleep 5
 done
 
+echo "Waiting for observability/grafana-admin-credentials to exist..."
+ATTEMPTS=0
+until kubectl get secret grafana-admin-credentials -n observability >/dev/null 2>&1; do
+  ATTEMPTS=$((ATTEMPTS + 1))
+  if [ "${ATTEMPTS}" -ge 36 ]; then
+    echo "Timed out waiting for observability/grafana-admin-credentials to be created." >&2
+    kubectl describe externalsecret grafana-admin-credentials -n observability || true
+    exit 1
+  fi
+  sleep 5
+done
+
 echo
 echo "Tailscale secret stack is configured."
 echo "Verification commands:"
 echo "  kubectl get clustersecretstore gcp-secret-manager"
 echo "  kubectl get externalsecret -n tailscale operator-oauth"
 echo "  kubectl get secret -n tailscale operator-oauth"
+echo "  kubectl get externalsecret -n observability grafana-admin-credentials"
+echo "  kubectl get secret -n observability grafana-admin-credentials"
 echo "  sh scripts/infra.sh deploy-tailscale-operator"

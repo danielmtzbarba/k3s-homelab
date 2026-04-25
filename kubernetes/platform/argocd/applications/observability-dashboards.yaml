@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: git@github.com:danielmtzbarba/k3s-homelab.git
     targetRevision: main
-    path: kubernetes/platform/observability/dashboards
+    path: kubernetes/platform/observability
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
