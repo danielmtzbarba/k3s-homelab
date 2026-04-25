@@ -76,6 +76,7 @@ The script:
 - persists `overlay` and `br_netfilter` module loading
 - persists the required k3s sysctl settings
 - configures `tls-san` for the server public IP when available
+- optionally configures a Kubernetes service-account issuer for Workload Identity Federation
 - persists the `TERM` setting in `~/.zshrc`
 - adds `alias k=kubectl`
 - installs k3s
@@ -123,6 +124,31 @@ tls-san:
 EOF"
 echo 'export TERM=xterm-256color' >> ~/.zshrc
 curl -sfL https://get.k3s.io | sh -
+```
+
+## Optional: Enable A Kubernetes Service-Account Issuer
+
+If you want Google Workload Identity Federation for External Secrets Operator later, configure a stable issuer URL before you start depending on it.
+
+Set in `.env`:
+
+```bash
+K8S_SERVICE_ACCOUNT_ISSUER_ENABLE="true"
+K8S_SERVICE_ACCOUNT_ISSUER_URL="https://k3s-server-1.<your-tailnet>.ts.net:6443"
+K8S_SERVICE_ACCOUNT_JWKS_URI="https://k3s-server-1.<your-tailnet>.ts.net:6443/openid/v1/jwks"
+```
+
+Then rerun:
+
+```bash
+sh scripts/infra.sh server-setup
+```
+
+Verify:
+
+```bash
+KUBECONFIG="$HOME/.kube/config-k3s-lab" kubectl get --raw /.well-known/openid-configuration
+KUBECONFIG="$HOME/.kube/config-k3s-lab" kubectl get --raw /openid/v1/jwks
 ```
 
 ## 6. Verify the Service

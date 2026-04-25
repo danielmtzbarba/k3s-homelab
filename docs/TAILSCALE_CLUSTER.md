@@ -62,6 +62,15 @@ Meaning:
   - `public`
   - `tailscale`
 
+- `K8S_SERVICE_ACCOUNT_ISSUER_ENABLE`
+  when `true`, also configures a Kubernetes service-account issuer URL for Workload Identity Federation
+
+- `K8S_SERVICE_ACCOUNT_ISSUER_URL`
+  the stable HTTPS issuer URL embedded in projected service account tokens
+
+- `K8S_SERVICE_ACCOUNT_JWKS_URI`
+  optional explicit JWKS URL advertised by the Kubernetes API server for issuer discovery
+
 ## Implemented Flow
 
 ### 1. Enable Tailscale In `.env`

@@ -97,6 +97,9 @@ Project documentation lives in `docs/`:
 - [Argo CD Environment Roadmap](docs/ARGOCD_ENVIRONMENTS.md)
 - [Argo CD Image Updater](docs/ARGOCD_IMAGE_UPDATER.md)
 - [Observability](docs/OBSERVABILITY.md)
+- [Private Tailnet Apps](docs/PRIVATE_TAILNET_APPS.md)
+- [Secrets](docs/SECRETS.md)
+- [ESO On GCP With WIF](docs/ESO_GCP_WIF.md)
 
 These docs describe the repository as it exists today, not a future target architecture.
 
@@ -114,7 +117,7 @@ These docs describe the repository as it exists today, not a future target archi
   Provisions the first worker VM on the same network.
 
 - `scripts/`
-  Thin operator wrappers and VM bootstrap scripts for server setup, worker join, kubeconfig retrieval, checks, and add-on deployment.
+  Thin operator wrappers and VM bootstrap scripts for infrastructure, cluster access, platform bootstrap, and workload rollout. See [scripts/README.md](scripts/README.md).
 
 - `kubernetes/apps/`
   Canonical home for cluster application workloads such as `danielmtz-website-prod-tls` and `danielmtz-website-dev-tls`.
@@ -149,9 +152,11 @@ sh scripts/infra.sh server-setup
 sh scripts/infra.sh kubeconfig
 sh scripts/worker.sh apply
 sh scripts/worker.sh join
+sh scripts/infra.sh platform-bootstrap
 sh scripts/infra.sh deploy-addons
 sh scripts/infra.sh deploy-argocd
 sh scripts/infra.sh deploy-image-updater
+sh scripts/infra.sh deploy-tailscale-operator
 sh scripts/check.sh
 ```
 
