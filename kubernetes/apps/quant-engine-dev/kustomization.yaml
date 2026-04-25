@@ -12,6 +12,7 @@ resources:
   - messaging-deployment.yaml
   - messaging-service.yaml
   - messaging-servicemonitor.yaml
+  - messaging-ingress.yaml
 images:
   - name: ghcr.io/danielmtzbarba/core_service
     newTag: 1741afff0ace1a0a08fa73bc7e368642954a23ba

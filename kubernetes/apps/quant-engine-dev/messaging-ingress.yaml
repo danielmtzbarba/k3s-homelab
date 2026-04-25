@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: quant-engine-dev-messaging-public
+  namespace: quant-engine-mt5
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - quant.danielmtzbarba.com
+      secretName: quant-danielmtzbarba-com-tls
+  rules:
+    - host: quant.danielmtzbarba.com
+      http:
+        paths:
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: quant-engine-dev-messaging-service
+                port:
+                  number: 8003
+          - path: /webhook
+            pathType: Prefix
+            backend:
+              service:
+                name: quant-engine-dev-messaging-service
+                port:
+                  number: 8003

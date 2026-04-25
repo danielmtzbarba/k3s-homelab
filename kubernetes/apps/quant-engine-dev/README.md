@@ -6,6 +6,7 @@ Scope in this first cut:
 
 - `core-service`
 - `messaging-service`
+- public webhook ingress for `quant.danielmtzbarba.com`
 
 Still left on the legacy VM layout for now:
 
@@ -21,3 +22,9 @@ Before this package can run, you still need:
 - GCP Secret Manager entries for the `ExternalSecret` keys in this package
 - real values for the temporary external URLs that still point to the legacy execution plane
 - real image tags in `kustomization.yaml`
+
+Public ingress notes:
+
+- `quant.danielmtzbarba.com/health` routes to `quant-engine-dev-messaging-service`
+- `quant.danielmtzbarba.com/webhook` routes to `quant-engine-dev-messaging-service`
+- WhatsApp webhook verification/callback should point at `https://quant.danielmtzbarba.com/webhook`
