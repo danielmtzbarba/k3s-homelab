@@ -10,6 +10,15 @@ Current layout:
 - `danielmtz-website-dev-tls/`
   Private development website app exposed through the tailnet via NodePort.
 
+- `quant-engine-dev/`
+  First migration slice for the MT5 quant app in the shared `quant-engine-mt5` namespace.
+
+- `quant-engine-prod/`
+  Production counterpart to `quant-engine-dev`, also using the shared `quant-engine-mt5` namespace.
+
+- `quant-engine-shared/`
+  Shared namespace-level resources for `quant-engine-dev` and `quant-engine-prod`.
+
 The intent is simple:
 
 - infrastructure lives in `infra/terraform/`

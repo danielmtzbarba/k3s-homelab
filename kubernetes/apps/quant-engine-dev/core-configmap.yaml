@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quant-engine-dev-core-config
+  namespace: quant-engine-mt5
+data:
+  CORE_MT5_SERVICE_URL: http://execution-vm:8000
+  CORE_MESSAGING_SERVICE_URL: http://messaging-service:8003
+  CORE_MAX_POSITIONS: "10"

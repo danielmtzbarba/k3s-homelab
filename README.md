@@ -100,6 +100,7 @@ Project documentation lives in `docs/`:
 - [Private Tailnet Apps](docs/PRIVATE_TAILNET_APPS.md)
 - [Secrets](docs/SECRETS.md)
 - [ESO On GCP With WIF](docs/ESO_GCP_WIF.md)
+- [MT5 Quant Server Migration Design](docs/MT5_QUANT_MIGRATION.md)
 
 These docs describe the repository as it exists today, not a future target architecture.
 

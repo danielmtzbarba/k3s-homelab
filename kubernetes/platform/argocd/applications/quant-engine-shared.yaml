@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: quant-engine-shared
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: quant-engine
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:danielmtzbarba/k3s-homelab.git
+    targetRevision: main
+    path: kubernetes/apps/quant-engine-shared
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: quant-engine-mt5
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

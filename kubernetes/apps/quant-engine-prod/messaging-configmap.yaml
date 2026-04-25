@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quant-engine-prod-messaging-config
+  namespace: quant-engine-mt5
+data:
+  MSG_CORE_SERVICE_URL: http://quant-engine-prod-core-service:8001
+  MSG_SYNC_SERVICE_URL: http://replace-prod-sync-url:8080
+  MSG_MT5_SERVICE_URL: http://replace-prod-mt5-url:8000
+  MSG_WHATSAPP_URL: https://graph.facebook.com/v17.0/replace-prod-phone-id/messages
+  MSG_APP_URL: https://replace-prod-app-url.example.com

@@ -12,6 +12,9 @@ Current website applications:
 
 - `danielmtz-website-prod.yaml`
 - `danielmtz-website-dev.yaml`
+- `quant-engine-shared.yaml`
+- `quant-engine-prod.yaml`
+- `quant-engine-dev.yaml`
 - `external-secrets.yaml`
 - `observability-kube-prometheus-stack.yaml`
 - `observability-loki.yaml`
@@ -22,3 +25,4 @@ Recommendation:
 
 - keep production Git-approved through PR merge, then let Argo CD auto-sync
 - allow development automation only after Image Updater is configured
+- if two Argo applications share one namespace, resource names must stay environment-qualified to avoid collisions
