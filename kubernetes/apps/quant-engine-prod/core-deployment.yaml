@@ -9,6 +9,8 @@ metadata:
     environment: prod
 spec:
   replicas: 0
+  strategy:
+    type: Recreate
   revisionHistoryLimit: 3
   selector:
     matchLabels:
