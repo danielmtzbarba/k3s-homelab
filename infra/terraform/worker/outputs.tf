@@ -1,19 +1,28 @@
-output "worker_public_ip" {
-  description = "Public IP of the worker."
-  value       = google_compute_instance.worker.network_interface[0].access_config[0].nat_ip
+output "worker_public_ips" {
+  description = "Public IPs of workers keyed by instance name."
+  value = {
+    for name, instance in google_compute_instance.worker :
+    name => instance.network_interface[0].access_config[0].nat_ip
+  }
 }
 
-output "worker_private_ip" {
-  description = "Private IP of the worker."
-  value       = google_compute_instance.worker.network_interface[0].network_ip
+output "worker_private_ips" {
+  description = "Private IPs of workers keyed by instance name."
+  value = {
+    for name, instance in google_compute_instance.worker :
+    name => instance.network_interface[0].network_ip
+  }
 }
 
-output "worker_name" {
-  description = "Worker instance name."
-  value       = google_compute_instance.worker.name
+output "worker_names" {
+  description = "Worker instance names."
+  value       = sort(keys(google_compute_instance.worker))
 }
 
-output "ssh_command" {
-  description = "Command to SSH into the worker with gcloud."
-  value       = "gcloud compute ssh ${google_compute_instance.worker.name} --zone=${var.zone}"
+output "ssh_commands" {
+  description = "Commands to SSH into workers with gcloud."
+  value = {
+    for name, instance in google_compute_instance.worker :
+    name => "gcloud compute ssh ${instance.name} --zone=${var.zone}"
+  }
 }

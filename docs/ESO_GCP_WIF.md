@@ -230,8 +230,8 @@ After the store exists, your first migration target should be the Tailscale oper
 
 That will let you replace:
 
-- local bootstrap values in `.gcp-secrets.env` for `TAILSCALE_OAUTH_CLIENT_ID`
-- local bootstrap values in `.gcp-secrets.env` for `TAILSCALE_OAUTH_CLIENT_SECRET`
+- local bootstrap values in `.env` for `TAILSCALE_OAUTH_CLIENT_ID`
+- local bootstrap values in `.env` for `TAILSCALE_OAUTH_CLIENT_SECRET`
 
 with:
 
@@ -240,7 +240,7 @@ with:
 The repo now includes an operator-focused wrapper that performs the first working path end to end:
 
 ```bash
-cp .gcp-secrets.env.example .gcp-secrets.env
+cp .env.example .env
 sh scripts/setup_tailscale_operator_secret_stack.sh
 sh scripts/infra.sh deploy-tailscale-operator
 ```

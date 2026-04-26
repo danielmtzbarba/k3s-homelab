@@ -5,7 +5,8 @@ set -eu
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DEFAULT_APP_ROOT="/home/danielmtz/Projects/algotrading/mt5-quant-server"
 APP_ROOT="${DEFAULT_APP_ROOT}"
-BASE_GCP_ENV_FILE="${ROOT_DIR}/.gcp-secrets.env"
+BASE_GCP_ENV_FILE=""
+ENV_HELPER="${ROOT_DIR}/scripts/lib_env.sh"
 ENVIRONMENT=""
 RECREATE_EXISTING="false"
 
@@ -17,7 +18,7 @@ Usage:
 Options:
   --environment <dev|prod>  Target quant-engine environment to populate.
   --app-root <path>         Path to the mt5-quant-server repo.
-  --base-gcp-env <path>     Path to an existing .gcp-secrets.env with PROJECT_ID and optional GCP_SECRET_ACCESSORS.
+  --base-gcp-env <path>     Path to an env source with PROJECT_ID and optional GCP_SECRET_ACCESSORS.
   --delete-existing         Delete and recreate matching GCP secrets before syncing.
   -h, --help                Show this help.
 
@@ -145,11 +146,13 @@ case "${ENVIRONMENT}" in
 esac
 
 require_cmd python3
-require_file "${BASE_GCP_ENV_FILE}"
+require_file "${ENV_HELPER}"
 require_file "${APP_ROOT}/infra/envs/core.env"
 require_file "${APP_ROOT}/infra/envs/messaging.env"
 
-load_env_file "${BASE_GCP_ENV_FILE}"
+# shellcheck disable=SC1090
+. "${ENV_HELPER}"
+load_gcp_secrets_env "${BASE_GCP_ENV_FILE:-}"
 
 if [ -z "${PROJECT_ID:-}" ]; then
   echo "PROJECT_ID must be set in ${BASE_GCP_ENV_FILE}" >&2

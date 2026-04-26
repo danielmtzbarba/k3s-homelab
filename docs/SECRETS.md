@@ -26,11 +26,11 @@ Use these classes consistently:
 | Secret / Credential | Current Consumer | Current Location / Creation Path | Class | Steady-State Target |
 | --- | --- | --- | --- | --- |
 | `TAILSCALE_AUTH_KEY` | k3s server bootstrap | `.env`, consumed by [scripts/k3s_server_setup.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/k3s_server_setup.sh) | `bootstrap-local` | Keep local-only for bootstrap, rotate periodically, do not sync into cluster |
-| `TAILSCALE_OAUTH_CLIENT_ID` | Tailscale Operator bootstrap only | local `.gcp-secrets.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `tailscale/operator-oauth` |
-| `TAILSCALE_OAUTH_CLIENT_SECRET` | Tailscale Operator bootstrap only | local `.gcp-secrets.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `tailscale/operator-oauth` |
-| `GRAFANA_ADMIN_USER` | Grafana admin login username | local `.gcp-secrets.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `observability/grafana-admin-credentials` |
-| `GRAFANA_ADMIN_PASSWORD` | Grafana admin login password | local `.gcp-secrets.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `observability/grafana-admin-credentials` |
-| `ALERTMANAGER_SLACK_WEBHOOK_URL` | Alertmanager Slack delivery | local `.gcp-secrets.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `observability/alertmanager-slack-webhook` |
+| `TAILSCALE_OAUTH_CLIENT_ID` | Tailscale Operator bootstrap only | local `.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `tailscale/operator-oauth` |
+| `TAILSCALE_OAUTH_CLIENT_SECRET` | Tailscale Operator bootstrap only | local `.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `tailscale/operator-oauth` |
+| `GRAFANA_ADMIN_USER` | Grafana admin login username | local `.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `observability/grafana-admin-credentials` |
+| `GRAFANA_ADMIN_PASSWORD` | Grafana admin login password | local `.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `observability/grafana-admin-credentials` |
+| `ALERTMANAGER_SLACK_WEBHOOK_URL` | Alertmanager Slack delivery | local `.env` or one-time shell export, consumed by [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `observability/alertmanager-slack-webhook` |
 | `repo-k3s-homelab` SSH deploy key | Argo CD repository access | Manual `kubectl create secret` in [docs/ARGOCD.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/docs/ARGOCD.md) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `argocd/repo-k3s-homelab` |
 | `k3s-homelab-writeback` GitHub token | Argo CD Image Updater Git write-back | Manual `kubectl create secret` in [docs/ARGOCD_IMAGE_UPDATER.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/docs/ARGOCD_IMAGE_UPDATER.md) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `argocd/k3s-homelab-writeback` |
 | `argocd/ghcr-pull-secret` | Argo CD Image Updater registry read access | Manual `kubectl create secret docker-registry` in [docs/ARGOCD_IMAGE_UPDATER.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/docs/ARGOCD_IMAGE_UPDATER.md) | `platform-managed` | GCP Secret Manager -> `ExternalSecret` -> `argocd/ghcr-pull-secret` |
@@ -84,7 +84,8 @@ For local operator-driven sync into GCP Secret Manager, use:
 
 - [scripts/sync_gcp_secrets.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/sync_gcp_secrets.sh)
 - [scripts/setup_tailscale_operator_secret_stack.sh](/home/danielmtz/Projects/kubernetes/k3s-homelab/scripts/setup_tailscale_operator_secret_stack.sh)
-- [.gcp-secrets.env.example](/home/danielmtz/Projects/kubernetes/k3s-homelab/.gcp-secrets.env.example)
+- [.env.example](/home/danielmtz/Projects/kubernetes/k3s-homelab/.env.example)
+- [infra/envs/README.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/infra/envs/README.md)
 
 Model:
 
@@ -119,7 +120,7 @@ GCP_SECRET_ACCESSORS="principal://iam.googleapis.com/projects/PROJECT_NUMBER/loc
 Then run:
 
 ```bash
-cp .gcp-secrets.env.example .gcp-secrets.env
+cp .env.example .env
 sh scripts/sync_gcp_secrets.sh
 ```
 
@@ -132,7 +133,7 @@ sh scripts/sync_gcp_secrets.sh --delete-existing
 For the current platform secret stack, the wrapper path is:
 
 ```bash
-cp .gcp-secrets.env.example .gcp-secrets.env
+cp .env.example .env
 sh scripts/setup_tailscale_operator_secret_stack.sh
 sh scripts/infra.sh deploy-tailscale-operator
 ```

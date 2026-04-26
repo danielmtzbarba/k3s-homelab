@@ -1,11 +1,11 @@
 # k3s Worker Setup
 
-This document adds the first worker node for the cluster.
+This document manages the worker pool for the cluster.
 
 Scope:
 
-- provision one worker VM
-- join it to the existing k3s server
+- provision one or more worker VMs
+- join them to the existing k3s server
 - verify multi-node scheduling
 
 This assumes:
@@ -21,7 +21,7 @@ If your server was created before the worker workflow was added to this repo, re
 sh scripts/infra.sh apply
 ```
 
-## 1. Provision the Worker VM
+## 1. Provision the Worker Stack
 
 From the repository root:
 
@@ -30,11 +30,11 @@ sh scripts/worker.sh plan
 sh scripts/worker.sh apply
 ```
 
-This creates:
+This creates, per worker:
 
 - one Ubuntu VM
 - one VM service account
-- one reserved internal IP for the worker
+- one reserved internal IP
 - optional cloud-init Tailscale enrollment
 - optional cloud-init `k3s-agent` install/join when `K3S_CLUSTER_TOKEN` is configured
 
@@ -47,7 +47,7 @@ Important:
 
 The canonical path is now boot-time reconciliation through cloud-init, not a follow-up SSH join step.
 
-Set these values in `.env` before `worker.sh apply`:
+For the backward-compatible single-worker path, set these values in `.env` before `worker.sh apply`:
 
 ```bash
 WORKER_INTERNAL_IP="10.10.0.3"
@@ -73,6 +73,30 @@ With those values set, `sh scripts/worker.sh apply` should be enough for the wor
 
 without `worker.sh join`.
 
+For multiple workers, prefer a declarative worker map instead of repeating worker-specific env vars.
+
+Option 1:
+
+```bash
+WORKERS_JSON='{
+  "k3s-worker-1": {
+    "internal_ip": "10.10.0.3",
+    "tailscale_hostname": "k3s-worker-1"
+  },
+  "k3s-worker-2": {
+    "internal_ip": "10.10.0.4",
+    "machine_type": "e2-standard-4",
+    "tailscale_hostname": "k3s-worker-2"
+  }
+}'
+```
+
+Option 2:
+
+- set `WORKERS_TFVARS_PATH` to an HCL file that defines the `workers = { ... }` map directly
+
+`worker.sh apply` then reconciles the full desired worker set in one Terraform apply.
+
 ## 3. Verify the Worker
 
 On your local machine:
@@ -84,10 +108,9 @@ kubectl get pods -A -o wide
 
 Expected result:
 
-- two nodes
 - one server node
-- one worker node
-- both in `Ready` state
+- the desired number of worker nodes
+- all in `Ready` state
 
 For worker boot debugging, check cloud-init first:
 
@@ -104,7 +127,7 @@ If you need to repair an existing worker manually, `worker.sh join` still exists
 Run:
 
 ```bash
-sh scripts/worker.sh join
+sh scripts/worker.sh join <worker-name>
 ```
 
 That helper:

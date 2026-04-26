@@ -3,8 +3,9 @@
 set -eu
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SECRETS_ENV_FILE="${ROOT_DIR}/.gcp-secrets.env"
+SECRETS_ENV_FILE=""
 RECREATE_EXISTING="false"
+ENV_HELPER="${ROOT_DIR}/scripts/lib_env.sh"
 
 usage() {
   cat <<'EOF'
@@ -33,7 +34,7 @@ parse_args() {
         exit 1
         ;;
       *)
-        if [ "${SECRETS_ENV_FILE}" != "${ROOT_DIR}/.gcp-secrets.env" ]; then
+        if [ -n "${SECRETS_ENV_FILE}" ]; then
           echo "Only one env file path may be provided." >&2
           usage >&2
           exit 1
@@ -67,9 +68,10 @@ require_env() {
 }
 
 load_env() {
-  set -a
-  . "${SECRETS_ENV_FILE}"
-  set +a
+  require_file "${ENV_HELPER}"
+  # shellcheck disable=SC1090
+  . "${ENV_HELPER}"
+  load_gcp_secrets_env "${SECRETS_ENV_FILE:-}"
 }
 
 sync_secret() {
@@ -120,7 +122,6 @@ sync_secret() {
 require_cmd gcloud
 require_cmd printenv
 parse_args "$@"
-require_file "${SECRETS_ENV_FILE}"
 load_env
 require_env PROJECT_ID "${PROJECT_ID:-}"
 

@@ -1,0 +1,60 @@
+#cloud-config
+package_update: false
+packages:
+  - bash
+  - curl
+  - ca-certificates
+  - zsh
+
+write_files:
+  - path: /etc/modules-load.d/k3s.conf
+    permissions: "0644"
+    content: |
+      overlay
+      br_netfilter
+  - path: /etc/sysctl.d/99-k3s.conf
+    permissions: "0644"
+    content: |
+      net.ipv4.ip_forward=1
+      net.bridge.bridge-nf-call-iptables=1
+      net.bridge.bridge-nf-call-ip6tables=1
+
+runcmd:
+  - mkdir -p /etc/rancher/k3s/config.yaml.d
+  - modprobe overlay
+  - modprobe br_netfilter
+  - sysctl --system
+%{ if k3s_cluster_token != "" ~}
+  - bash -lc 'cat > /etc/rancher/k3s/config.yaml.d/05-cluster-token.yaml <<EOF
+token: "${k3s_cluster_token}"
+EOF'
+%{ endif ~}
+  - bash -lc 'PUBLIC_IP="$(curl -fsS -H \"Metadata-Flavor: Google\" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip || true)"; if [ -n "$PUBLIC_IP" ]; then cat > /etc/rancher/k3s/config.yaml.d/10-public-ip.yaml <<EOF
+tls-san:
+  - "$PUBLIC_IP"
+EOF
+fi'
+%{ if k8s_service_account_issuer_enable ~}
+  - bash -lc 'cat > /etc/rancher/k3s/config.yaml.d/30-service-account-issuer.yaml <<EOF
+kube-apiserver-arg:
+  - service-account-issuer=${k8s_service_account_issuer_url}
+%{ if k8s_service_account_jwks_uri != "" ~}
+  - service-account-jwks-uri=${k8s_service_account_jwks_uri}
+%{ endif ~}
+EOF'
+%{ endif ~}
+%{ if tailscale_enable ~}
+  - bash -lc 'if ! command -v tailscale >/dev/null 2>&1; then curl -fsSL https://tailscale.com/install.sh | sh; fi'
+  - systemctl enable tailscaled
+  - systemctl restart tailscaled
+  - bash -lc 'tailscale up --auth-key=${tailscale_auth_key} --accept-dns=${tailscale_accept_dns} --hostname=${tailscale_hostname}'
+  - bash -lc 'TAILSCALE_IP="$(tailscale ip -4 2>/dev/null | head -n 1 || true)"; if [ -n "$TAILSCALE_IP" ]; then cat > /etc/rancher/k3s/config.yaml.d/20-tailscale-ip.yaml <<EOF
+tls-san:
+  - "$TAILSCALE_IP"
+EOF
+fi'
+%{ endif ~}
+  - bash -lc 'touch /root/.hushlogin'
+  - bash -lc 'if ! systemctl is-enabled k3s >/dev/null 2>&1; then curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server" sh -; fi'
+  - systemctl enable k3s
+  - systemctl restart k3s

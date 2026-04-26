@@ -4,6 +4,7 @@ set -eu
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
+ENV_HELPER="${ROOT_DIR}/scripts/lib_env.sh"
 REMOTE_LIB="${ROOT_DIR}/scripts/lib_remote_access.sh"
 BOOTSTRAP_DIR="${ROOT_DIR}/infra/terraform/bootstrap"
 SERVER_DIR="${ROOT_DIR}/infra/terraform/server"
@@ -15,9 +16,11 @@ Usage:
   sh scripts/infra.sh bootstrap
   sh scripts/infra.sh plan
   sh scripts/infra.sh apply
+  sh scripts/infra.sh apply-kubeconfig
   sh scripts/infra.sh server-setup
   sh scripts/infra.sh kubeconfig
   sh scripts/infra.sh platform-bootstrap
+  sh scripts/infra.sh platform-reconcile
   sh scripts/infra.sh deploy-addons
   sh scripts/infra.sh deploy-argocd
   sh scripts/infra.sh deploy-image-updater
@@ -32,9 +35,11 @@ Commands:
   bootstrap       Create or reconcile the Terraform backend bucket.
   plan            Generate server Terraform inputs and run terraform plan.
   apply           Generate server Terraform inputs and run terraform apply.
+  apply-kubeconfig Generate server Terraform inputs, run terraform apply, and fetch kubeconfig.
   server-setup    Copy and run the VM-side k3s server setup script.
   kubeconfig      Fetch kubeconfig from the server and rewrite it for local use.
   platform-bootstrap Reconcile the first platform layer after cluster access works.
+  platform-reconcile Run platform-bootstrap, deploy Argo CD Image Updater, and apply Argo CD Applications.
   deploy-addons   Install cluster add-ons such as cert-manager and TLS ingress.
   deploy-argocd   Install or upgrade Argo CD with Helm.
   deploy-image-updater Install Argo CD Image Updater in the argocd namespace.
@@ -62,10 +67,10 @@ require_file() {
 }
 
 load_env() {
-  require_file "${ENV_FILE}"
-  set -a
-  . "${ENV_FILE}"
-  set +a
+  require_file "${ENV_HELPER}"
+  # shellcheck disable=SC1090
+  . "${ENV_HELPER}"
+  load_infra_env
 }
 
 validate_env() {
@@ -152,25 +157,31 @@ run_kubeconfig() {
   sh ./scripts/fetch_kubeconfig.sh
 }
 
+run_server_apply_kubeconfig() {
+  run_server_apply
+  echo
+  run_kubeconfig
+}
+
 run_platform_bootstrap() {
   echo "Bootstrapping platform components..."
   echo "  1. cert-manager and shared issuer"
   echo "  2. Argo CD"
-  echo "  3. Tailscale operator secret stack, if .gcp-secrets.env exists"
+  echo "  3. Tailscale operator secret stack, if GCP secret env files exist"
   echo "  4. Tailscale Kubernetes Operator"
   echo
 
   run_deploy_addons
   run_deploy_argocd
 
-  if [ -f "${ROOT_DIR}/.gcp-secrets.env" ]; then
-    echo "Configuring Tailscale operator secret stack from .gcp-secrets.env..."
+  if has_gcp_secrets_env; then
+    echo "Configuring Tailscale operator secret stack from configured GCP secret env source..."
     cd "${ROOT_DIR}"
     sh ./scripts/setup_tailscale_operator_secret_stack.sh
     run_deploy_tailscale_operator
   else
     echo "Skipping Tailscale operator bootstrap."
-    echo "Provide .gcp-secrets.env for the ESO-managed path."
+    echo "Provide the GCP secret mappings in .env or use infra/envs/gcp.*.env."
   fi
 
   echo
@@ -195,10 +206,24 @@ run_deploy_image_updater() {
   sh ./scripts/deploy_argocd_image_updater.sh
 }
 
+run_apply_argocd_applications() {
+  echo "Applying Argo CD Application resources..."
+  cd "${ROOT_DIR}"
+  kubectl apply -f ./kubernetes/platform/argocd/applications/
+}
+
 run_deploy_tailscale_operator() {
   echo "Deploying the Tailscale Kubernetes Operator..."
   cd "${ROOT_DIR}"
   sh ./scripts/deploy_tailscale_operator.sh
+}
+
+run_platform_reconcile() {
+  run_platform_bootstrap
+  echo
+  run_deploy_image_updater
+  echo
+  run_apply_argocd_applications
 }
 
 run_destroy_server() {
@@ -281,7 +306,9 @@ run_status() {
   echo
 
   echo "GCE instances:"
-  if [ -n "${WORKER_NAME:-}" ]; then
+  if [ -n "${CLUSTER_TAG:-}" ]; then
+    gcloud compute instances list --filter="tags.items=${CLUSTER_TAG}" || true
+  elif [ -n "${WORKER_NAME:-}" ]; then
     gcloud compute instances list --filter="name=(${SERVER_NAME} ${WORKER_NAME})" || true
   else
     gcloud compute instances list --filter="name=${SERVER_NAME}" || true
@@ -307,6 +334,9 @@ main() {
     apply)
       run_server_apply
       ;;
+    apply-kubeconfig)
+      run_server_apply_kubeconfig
+      ;;
     server-setup)
       run_server_setup
       ;;
@@ -315,6 +345,9 @@ main() {
       ;;
     platform-bootstrap)
       run_platform_bootstrap
+      ;;
+    platform-reconcile)
+      run_platform_reconcile
       ;;
     deploy-addons)
       run_deploy_addons

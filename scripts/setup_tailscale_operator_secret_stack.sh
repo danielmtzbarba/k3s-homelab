@@ -4,7 +4,8 @@ set -eu
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 KUBECONFIG_PATH="${KUBECONFIG:-${HOME}/.kube/config-k3s-lab}"
-GCP_SECRETS_ENV_FILE="${1:-${ROOT_DIR}/.gcp-secrets.env}"
+GCP_SECRETS_ENV_FILE="${1:-}"
+ENV_HELPER="${ROOT_DIR}/scripts/lib_env.sh"
 STORE_TEMPLATE="${ROOT_DIR}/kubernetes/platform/external-secrets/clustersecretstore-gcpsm-wif.example.yaml"
 SERVICE_ACCOUNT_MANIFEST="${ROOT_DIR}/kubernetes/platform/external-secrets/serviceaccount-gcpsm.yaml"
 TAILSCALE_EXTERNAL_SECRET_MANIFEST="${ROOT_DIR}/kubernetes/platform/tailscale-operator/externalsecret-operator-oauth.yaml"
@@ -32,12 +33,6 @@ require_env() {
   fi
 }
 
-load_env_file() {
-  set -a
-  . "$1"
-  set +a
-}
-
 render_cluster_secret_store() {
   TMP_FILE="$(mktemp)"
   sed \
@@ -53,14 +48,16 @@ require_cmd gcloud
 require_cmd kubectl
 require_cmd sed
 require_file "${KUBECONFIG_PATH}"
-require_file "${GCP_SECRETS_ENV_FILE}"
+require_file "${ENV_HELPER}"
 require_file "${STORE_TEMPLATE}"
 require_file "${SERVICE_ACCOUNT_MANIFEST}"
 require_file "${TAILSCALE_EXTERNAL_SECRET_MANIFEST}"
 require_file "${GRAFANA_EXTERNAL_SECRET_MANIFEST}"
 require_file "${ALERTMANAGER_EXTERNAL_SECRET_MANIFEST}"
 
-load_env_file "${GCP_SECRETS_ENV_FILE}"
+# shellcheck disable=SC1090
+. "${ENV_HELPER}"
+load_gcp_secrets_env "${GCP_SECRETS_ENV_FILE:-}"
 require_env PROJECT_ID "${PROJECT_ID:-}"
 require_env POOL_ID "${POOL_ID:-}"
 require_env PROVIDER_ID "${PROVIDER_ID:-}"

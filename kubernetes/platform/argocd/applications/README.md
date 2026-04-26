@@ -8,6 +8,12 @@ Apply these only after:
 - the `argocd` namespace exists
 - the Argo CD CRDs are available in the cluster
 
+Normal operator path:
+
+```bash
+sh scripts/infra.sh platform-reconcile
+```
+
 Current website applications:
 
 - `danielmtz-website-prod.yaml`

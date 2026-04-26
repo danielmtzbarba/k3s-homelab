@@ -78,7 +78,7 @@ Required Tailscale setup:
 Bootstrap once:
 
 ```bash
-cp .gcp-secrets.env.example .gcp-secrets.env
+cp .env.example .env
 sh scripts/setup_tailscale_operator_secret_stack.sh
 sh scripts/infra.sh deploy-tailscale-operator
 ```

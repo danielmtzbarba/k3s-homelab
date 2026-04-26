@@ -4,7 +4,8 @@ set -eu
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 KUBECONFIG_PATH="${KUBECONFIG:-${HOME}/.kube/config-k3s-lab}"
-GCP_SECRETS_ENV_FILE="${1:-${ROOT_DIR}/.gcp-secrets.env}"
+GCP_SECRETS_ENV_FILE="${1:-}"
+ENV_HELPER="${ROOT_DIR}/scripts/lib_env.sh"
 
 SHARED_NAMESPACE_MANIFEST="${ROOT_DIR}/kubernetes/apps/quant-engine-shared/namespace.yaml"
 SHARED_GHCR_EXTERNAL_SECRET="${ROOT_DIR}/kubernetes/apps/quant-engine-shared/ghcr-pull-secret-externalsecret.yaml"
@@ -30,7 +31,7 @@ require_file() {
 
 require_cmd kubectl
 require_file "${KUBECONFIG_PATH}"
-require_file "${GCP_SECRETS_ENV_FILE}"
+require_file "${ENV_HELPER}"
 require_file "${SHARED_NAMESPACE_MANIFEST}"
 require_file "${SHARED_GHCR_EXTERNAL_SECRET}"
 require_file "${DEV_CORE_EXTERNAL_SECRET}"

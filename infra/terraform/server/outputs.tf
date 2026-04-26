@@ -5,7 +5,7 @@ output "server_public_ip" {
 
 output "server_private_ip" {
   description = "Internal IP of the server."
-  value       = google_compute_instance.server.network_interface[0].network_ip
+  value       = google_compute_address.server_internal_ip.address
 }
 
 output "server_name" {

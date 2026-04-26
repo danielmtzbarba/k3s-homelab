@@ -49,6 +49,11 @@ The repository currently supports:
   - reserved internal worker IP
   - worker Tailscale join on boot
   - worker `k3s-agent` join on boot when `K3S_CLUSTER_TOKEN` is configured
+- cloud-init server bootstrap for:
+  - reserved internal server IP
+  - server Tailscale join on boot
+  - boot-time `k3s server` install
+  - optional Kubernetes service-account issuer configuration
 - local operator wrappers for:
   - infra bootstrap/apply/destroy
   - server setup
@@ -64,8 +69,8 @@ The repository currently supports:
 The current cluster path has been validated end to end:
 
 - infrastructure provisioned by Terraform
-- server bootstrap automated through `infra.sh`
-- worker join automated through `worker.sh`
+- server bootstrap automated through cloud-init
+- worker bootstrap automated through cloud-init
 - worker recreation validated through cloud-init bootstrap
 - website reachable over HTTPS
 - `www` redirecting to the apex domain
@@ -77,7 +82,8 @@ The current cluster path has been validated end to end:
 
 - **Flat, understandable Terraform layout** for backend bootstrap, server infra, and worker infra.
 - **Thin shell automation** around Terraform and cluster operations instead of burying everything in CI too early.
-- **k3s-specific node bootstrap** including required kernel modules, sysctls, `tls-san`, and shell setup.
+- **k3s-specific node bootstrap** including required kernel modules, sysctls, `tls-san`, and service-account issuer support.
+- **Cloud-init server bootstrap** so recreated servers can bring up `k3s server` and Tailscale without SSH.
 - **Cloud-init worker bootstrap** so recreated workers can rejoin Tailscale and k3s without SSH.
 - **Remote kubeconfig automation** for local cluster access after server creation.
 - **Cluster add-on deployment path** for cert-manager and shared issuer resources.
@@ -118,10 +124,10 @@ These docs describe the repository as it exists today, not a future target archi
   Creates the GCS bucket used as the Terraform remote backend.
 
 - `infra/terraform/server/`
-  Provisions the first GCP network and k3s server VM.
+  Provisions the first GCP network and k3s server VM, with cloud-init support for boot-time `k3s server` and optional Tailscale enrollment.
 
 - `infra/terraform/worker/`
-  Provisions the first worker VM on the same network, with cloud-init support for Tailscale and `k3s-agent` boot-time join.
+  Reconciles the desired worker set on the same network, with cloud-init support for Tailscale and `k3s-agent` boot-time join.
 
 - `scripts/`
   Thin operator wrappers and VM bootstrap scripts for infrastructure, cluster access, platform bootstrap, and workload rollout. See [scripts/README.md](scripts/README.md).
@@ -143,6 +149,8 @@ Start from the repository root:
 cp .env.example .env
 ```
 
+Or use the preferred split env layout documented in [infra/envs/README.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/infra/envs/README.md) and let the root `.env` import those files.
+
 Then follow the operator path:
 
 1. [docs/INFRA.md](docs/INFRA.md)
@@ -154,32 +162,33 @@ Then follow the operator path:
 
 ```bash
 sh scripts/infra.sh bootstrap
-sh scripts/infra.sh apply
-sh scripts/infra.sh server-setup
-sh scripts/infra.sh kubeconfig
+sh scripts/infra.sh apply-kubeconfig
 sh scripts/worker.sh apply
-sh scripts/infra.sh platform-bootstrap
-sh scripts/infra.sh deploy-addons
-sh scripts/infra.sh deploy-argocd
-sh scripts/infra.sh deploy-image-updater
-sh scripts/infra.sh deploy-tailscale-operator
+sh scripts/infra.sh platform-reconcile
 sh scripts/check.sh
 ```
 
-Use `sh scripts/worker.sh join` only as a recovery path for an existing worker. The preferred worker path is now:
+Use `sh scripts/worker.sh join [worker-name]` only as a recovery path for an existing worker. The preferred worker path is now:
 
-- set `WORKER_INTERNAL_IP`
+- set either `WORKERS_JSON` / `WORKERS_TFVARS_PATH` or the legacy single-worker vars
 - set `TAILSCALE_ENABLE=true`
-- set `TAILSCALE_WORKER_AUTH_KEY`
 - set `K3S_CLUSTER_TOKEN`
 - run `sh scripts/worker.sh apply`
+
+Use `sh scripts/infra.sh server-setup` only as a recovery path for an existing server. The preferred server path is now:
+
+- set `TAILSCALE_ENABLE=true` if you want server tailnet access on boot
+- set `TAILSCALE_AUTH_KEY`
+- set `K3S_CLUSTER_TOKEN`
+- optionally set the service-account issuer inputs
+- run `sh scripts/infra.sh apply-kubeconfig`
 
 ## Current Scope
 
 The current repository covers:
 
 - Terraform-managed GCP infrastructure
-- manual-but-repeatable cluster bring-up
+- mostly declarative cluster bring-up with cloud-init node bootstrap
 - remote cluster access from a local machine
 - multi-node scheduling on k3s
 - ingress routing with Traefik

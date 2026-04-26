@@ -4,6 +4,7 @@ set -eu
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
+ENV_HELPER="${ROOT_DIR}/scripts/lib_env.sh"
 KUBECONFIG_PATH="${KUBECONFIG:-${HOME}/.kube/config-k3s-lab}"
 TAILSCALE_NAMESPACE="tailscale"
 TAILSCALE_RELEASE="tailscale-operator"
@@ -26,10 +27,10 @@ require_file() {
 }
 
 load_env() {
-  if [ -f "${ENV_FILE}" ]; then
-    set -a
-    . "${ENV_FILE}"
-    set +a
+  if [ -f "${ENV_HELPER}" ]; then
+    # shellcheck disable=SC1090
+    . "${ENV_HELPER}"
+    load_infra_env || true
   fi
 }
 

@@ -1,12 +1,11 @@
 # k3s Server Setup
 
-This document starts after the infrastructure exists and you are ready to SSH into the server.
+This document starts after the infrastructure exists.
 
 Scope:
 
-- SSH into the VM
-- apply basic server shell setup changes
-- install k3s server
+- provision the server with boot-time cloud-init bootstrap
+- verify `k3s server`
 - verify the service
 - retrieve kubeconfig
 - verify cluster access from your machine
@@ -19,42 +18,77 @@ Important:
 - avoid `10.42.0.0/24` as the GCP subnet because k3s uses `10.42.0.0/16` by default
 - a safe learning subnet is `10.10.0.0/24`
 
-## 1. SSH Into the Server
+## 1. Recommended Path: Cloud-Init Server Bootstrap
+
+The canonical server path is now Terraform + cloud-init, not a follow-up SSH session.
+
+Set these values in `.env` before `sh scripts/infra.sh apply`:
+
+```bash
+TAILSCALE_ENABLE="true"
+TAILSCALE_AUTH_KEY="..."
+TAILSCALE_HOSTNAME="k3s-server-1"
+TAILSCALE_ACCEPT_DNS="false"
+K3S_CLUSTER_TOKEN="..."
+```
+
+Optional issuer settings:
+
+```bash
+K8S_SERVICE_ACCOUNT_ISSUER_ENABLE="true"
+K8S_SERVICE_ACCOUNT_ISSUER_URL="https://k3s-server-1.<your-tailnet>.ts.net:6443"
+K8S_SERVICE_ACCOUNT_JWKS_URI="https://k3s-server-1.<your-tailnet>.ts.net:6443/openid/v1/jwks"
+```
+
+Then run:
+
+```bash
+sh scripts/infra.sh apply
+```
+
+That server stack now:
+
+- reserves a stable internal server IP in Terraform
+- attaches cloud-init `user-data`
+- installs `k3s server` on boot
+- optionally joins the tailnet
+- optionally configures the service-account issuer
+
+## 2. Verify The Server
 
 From your local machine:
 
 ```bash
-gcloud compute ssh "$SERVER_NAME" --zone="$ZONE"
+gcloud compute ssh "$SERVER_NAME" --zone="$ZONE" --command='sudo systemctl status k3s --no-pager'
 ```
 
-If you are not in a shell with `.env` loaded, use the explicit values:
+If Tailscale is enabled, tailnet access works too:
 
 ```bash
-gcloud compute ssh "k3s-server-1" --zone="europe-west3-a"
+tailscale ssh "$SSH_USER@$TAILSCALE_HOSTNAME" sudo systemctl status k3s --no-pager
 ```
 
-## 2. Verify the VM
-
-Once inside the VM:
+Useful direct checks on the VM:
 
 ```bash
 uname -a
 cat /etc/os-release
+sudo journalctl -u k3s -n 100 --no-pager
+sudo kubectl get nodes -o wide
 ```
 
-## 3. Setup Checklist
+For cloud-init debugging:
 
-Before installing k3s, apply these base changes on the server:
+```bash
+sudo cloud-init status --long
+sudo tail -200 /var/log/cloud-init-output.log
+```
 
-- use `zsh`
-- export `TERM=xterm-256color`
-- persist `TERM` in `~/.zshrc`
-- keep the server package set minimal
-- install k3s only after the shell environment is sane
+## 3. Recovery Path: Manual Server Setup Script
 
-## 4. Run the Setup Script
+If you need to repair an existing server manually, the old VM-side setup script still exists as a fallback.
 
-From your local machine, copy the script to the server:
+From your local machine:
 
 ```bash
 gcloud compute scp scripts/k3s_server_setup.sh "$SERVER_NAME":~/ --zone="$ZONE"
@@ -92,7 +126,7 @@ sh scripts/infra.sh server-setup
 
 That runs the same VM-side script through `gcloud compute scp` and `gcloud compute ssh`.
 
-## 5. Install k3s Server Manually Instead
+## 4. Manual Install Alternative
 
 If you do not want to use the script, run these manually inside the VM:
 
@@ -141,7 +175,7 @@ K8S_SERVICE_ACCOUNT_JWKS_URI="https://k3s-server-1.<your-tailnet>.ts.net:6443/op
 Then rerun:
 
 ```bash
-sh scripts/infra.sh server-setup
+sh scripts/infra.sh apply
 ```
 
 Verify:
@@ -151,7 +185,7 @@ KUBECONFIG="$HOME/.kube/config-k3s-lab" kubectl get --raw /.well-known/openid-co
 KUBECONFIG="$HOME/.kube/config-k3s-lab" kubectl get --raw /openid/v1/jwks
 ```
 
-## 6. Verify the Service
+## 5. Verify the Service
 
 Inside the VM:
 
@@ -172,7 +206,7 @@ Expected result:
 - node status `Ready`
 - system pods running in `kube-system`
 
-## 7. Verify the API Port
+## 6. Verify the API Port
 
 Inside the VM:
 
@@ -182,7 +216,7 @@ sudo ss -lntp | grep 6443
 
 You should see the Kubernetes API listening on `6443`.
 
-## 8. Retrieve the kubeconfig
+## 7. Retrieve the kubeconfig
 
 Automated option from your local machine:
 
@@ -194,20 +228,29 @@ sh scripts/fetch_kubeconfig.sh
 That script:
 
 - reads `.env`
-- copies the server setup script to the VM
-- runs the server setup script on the VM
 - pulls `/etc/rancher/k3s/k3s.yaml` from the server
-- discovers the server public IP
+- discovers the server public or Tailscale IP depending on `KUBECONFIG_ENDPOINT_MODE`
 - rewrites the API endpoint
 - writes the result to `~/.kube/config-k3s-lab`
 
-Because it runs the server setup first, it is safe to rerun after rebuilding the VM.
-
-If you want the explicit two-step flow instead of the combined kubeconfig flow:
+If you want an explicit verification flow first:
 
 ```bash
-sh scripts/infra.sh server-setup
 sh scripts/infra.sh kubeconfig
+```
+
+If you want the normal one-shot path from your local machine, use:
+
+```bash
+sh scripts/infra.sh apply-kubeconfig
+export KUBECONFIG="$HOME/.kube/config-k3s-lab"
+```
+
+Then continue with the normal platform path:
+
+```bash
+sh scripts/worker.sh apply
+sh scripts/infra.sh platform-reconcile
 ```
 
 Manual option:
@@ -242,7 +285,7 @@ Example:
 server: https://34.123.45.67:6443
 ```
 
-## 9. Verify Access From Your Machine
+## 8. Verify Access From Your Machine
 
 On your local machine:
 
@@ -253,7 +296,7 @@ kubectl get pods -A
 kubectl cluster-info
 ```
 
-## 10. What You Have Now
+## 9. What You Have Now
 
 You now have:
 

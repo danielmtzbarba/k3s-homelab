@@ -140,6 +140,7 @@ celerybeat.pid
 # Environments
 .env
 .gcp-secrets.env
+infra/envs/*.env
 k3s_server_setup.env
 cluster-jwks.json
 .envrc

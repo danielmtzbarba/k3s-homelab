@@ -4,38 +4,52 @@ This directory contains the operator entrypoints for infrastructure, cluster boo
 
 Use the wrappers in this order unless you are debugging a specific layer.
 
+Env source model:
+
+- canonical: root `.env`
+- preferred structure behind it: split `infra.*.env` and `gcp.*.env` files under [infra/envs/README.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/infra/envs/README.md)
+
 ## Recommended Order
 
 1. `infra.sh bootstrap`
    Create or reconcile the Terraform backend bucket.
 
-2. `infra.sh apply`
-   Create or reconcile the server infrastructure stack.
+2. `infra.sh apply-kubeconfig`
+   Create or reconcile the server infrastructure stack and fetch kubeconfig.
 
-3. `infra.sh server-setup`
-   Bootstrap the k3s server VM and admin-access path.
+3. verify the server boot path
+   Cloud-init should bring up `k3s server` and optional Tailscale during VM boot
+   when the relevant values are set in `.env`.
 
-4. `infra.sh kubeconfig`
-   Pull kubeconfig and rewrite it for local use.
+4. export `KUBECONFIG`
+   `infra.sh apply-kubeconfig` writes `~/.kube/config-k3s-lab`, but it cannot
+   export into your current shell. Run:
+   `export KUBECONFIG="$HOME/.kube/config-k3s-lab"`
 
 5. `worker.sh apply`
-   Create or reconcile the first worker VM.
+   Create or reconcile the desired worker set.
 
 6. verify the worker boot path
-   Cloud-init should join the worker to Tailscale and k3s automatically when
+   Cloud-init should join each worker to Tailscale and k3s automatically when
    `TAILSCALE_ENABLE=true` and `K3S_CLUSTER_TOKEN` are set in `.env`.
 
 7. `worker.sh join`
    Recovery path only. Use this when you need to repair an existing worker manually.
 
-8. `infra.sh platform-bootstrap`
-   Reconcile the first platform layer:
+8. `infra.sh platform-reconcile`
+   Normal platform path. This runs:
+   - `infra.sh platform-bootstrap`
+   - `infra.sh deploy-image-updater`
+   - `kubectl apply -f kubernetes/platform/argocd/applications/`
+
+9. `infra.sh platform-bootstrap`
+   Lower-level repair path for the first platform layer:
    - cert-manager
    - Argo CD
-   - Tailscale operator secret stack when `.gcp-secrets.env` exists
+   - Tailscale operator secret stack when the root `.env` contains the GCP secret mappings
    - Tailscale Kubernetes Operator
 
-9. `website_rollout.sh`
+10. `website_rollout.sh`
    Deploy or update the website workload.
 
 ## Script Groups
@@ -44,6 +58,7 @@ Use the wrappers in this order unless you are debugging a specific layer.
 
 - `infra.sh`
   Main operator entrypoint for Terraform, cluster bootstrap, and platform bootstrap.
+  `infra.sh server-setup` remains the manual repair path for the server.
 
 - `worker.sh`
   Worker infrastructure and recovery workflow. The preferred path is boot-time

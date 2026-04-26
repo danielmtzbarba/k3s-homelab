@@ -4,6 +4,7 @@ set -eu
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
+ENV_HELPER="${ROOT_DIR}/scripts/lib_env.sh"
 KUBECONFIG_PATH="${HOME}/.kube/config-k3s-lab"
 
 section() {
@@ -29,10 +30,10 @@ check_file() {
 }
 
 load_env() {
-  check_file "${ENV_FILE}"
-  set -a
-  . "${ENV_FILE}"
-  set +a
+  check_file "${ENV_HELPER}"
+  # shellcheck disable=SC1090
+  . "${ENV_HELPER}"
+  load_infra_env
 }
 
 section "Prerequisites"
@@ -42,11 +43,11 @@ check_cmd kubectl
 
 section "Environment"
 load_env
-: "${PROJECT_ID:?PROJECT_ID is required in .env}"
-: "${SERVER_NAME:?SERVER_NAME is required in .env}"
-: "${ZONE:?ZONE is required in .env}"
-: "${TF_STATE_BUCKET:?TF_STATE_BUCKET is required in .env}"
-: "${SUBNET_CIDR:?SUBNET_CIDR is required in .env}"
+: "${PROJECT_ID:?PROJECT_ID is required in infra env}"
+: "${SERVER_NAME:?SERVER_NAME is required in infra env}"
+: "${ZONE:?ZONE is required in infra env}"
+: "${TF_STATE_BUCKET:?TF_STATE_BUCKET is required in infra env}"
+: "${SUBNET_CIDR:?SUBNET_CIDR is required in infra env}"
 printf 'ok   PROJECT_ID=%s\n' "${PROJECT_ID}"
 printf 'ok   SERVER_NAME=%s\n' "${SERVER_NAME}"
 if [ "${SUBNET_CIDR}" = "10.42.0.0/24" ]; then

@@ -6,16 +6,24 @@ This stack provisions only the first GCP server foundation:
 - subnet
 - firewall rules
 - static external IP
+- reserved internal IP
 - service account for VM logging and metrics
 - SSH access metadata
 - single Ubuntu VM
+- cloud-init bootstrap for optional Tailscale enrollment
+- cloud-init bootstrap for `k3s server`
 
-It does not install k3s for you yet.
+This stack now bootstraps the server node directly at VM boot through cloud-init.
 
-That separation is intentional:
+The server cloud-init path can:
 
-- Terraform owns infrastructure
-- you still learn k3s installation manually
+- configure required kernel modules and sysctls
+- join Tailscale when `TAILSCALE_ENABLE=true`
+- install `k3s server`
+- configure `tls-san` for public and Tailscale IPs
+- configure the Kubernetes service-account issuer when enabled
+
+Argo CD and the rest of the platform are still installed after cluster access is available. They are not part of server cloud-init.
 
 ## Files
 
@@ -45,4 +53,10 @@ terraform output
 terraform output ssh_command
 ```
 
-Then SSH into the VM and install k3s manually.
+Then verify:
+
+```bash
+terraform output server_private_ip
+```
+
+If `K3S_CLUSTER_TOKEN` and optional Tailscale settings are configured in `.env`, the server should come up already running `k3s`.

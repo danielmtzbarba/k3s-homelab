@@ -23,12 +23,16 @@ You can run the Terraform workflow manually, or use the thin wrapper script:
 sh scripts/infra.sh bootstrap
 sh scripts/infra.sh plan
 sh scripts/infra.sh apply
+sh scripts/infra.sh apply-kubeconfig
 sh scripts/infra.sh server-setup
 sh scripts/infra.sh kubeconfig
+sh scripts/infra.sh platform-reconcile
 sh scripts/infra.sh deploy-addons
 ```
 
-`server-setup` runs the VM-side bootstrap explicitly. `kubeconfig` still runs the same setup first and then fetches the kubeconfig, so it can reconcile a freshly rebuilt server.
+`server-setup` runs the VM-side bootstrap explicitly as a recovery path. `kubeconfig` only fetches kubeconfig from an already bootstrapped server. `apply-kubeconfig` is the normal one-shot path after server creation.
+
+`platform-reconcile` is the normal one-shot path after node bootstrap. It runs the first platform bootstrap, installs Argo CD Image Updater, and then applies the Argo CD `Application` resources.
 
 For a full reset test, there is also:
 

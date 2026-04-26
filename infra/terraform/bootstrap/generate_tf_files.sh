@@ -2,16 +2,16 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-ENV_FILE="${ROOT_DIR}/.env"
+ENV_HELPER="${ROOT_DIR}/scripts/lib_env.sh"
 
-if [[ ! -f "${ENV_FILE}" ]]; then
-  echo ".env not found at ${ENV_FILE}" >&2
+if [[ ! -f "${ENV_HELPER}" ]]; then
+  echo "Env helper not found at ${ENV_HELPER}" >&2
   exit 1
 fi
 
-set -a
-source "${ENV_FILE}"
-set +a
+# shellcheck disable=SC1090
+source "${ENV_HELPER}"
+load_infra_env
 
 cat > terraform.auto.tfvars <<EOF
 project_id                  = "${PROJECT_ID}"

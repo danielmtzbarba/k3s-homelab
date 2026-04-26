@@ -90,3 +90,53 @@ variable "ssh_public_key" {
   type        = string
   sensitive   = true
 }
+
+variable "tailscale_enable" {
+  description = "Whether to enroll the server VM into Tailscale during boot."
+  type        = bool
+  default     = false
+}
+
+variable "tailscale_auth_key" {
+  description = "Tailscale auth key for server enrollment."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "tailscale_accept_dns" {
+  description = "Whether the server should accept DNS settings from Tailscale."
+  type        = bool
+  default     = false
+}
+
+variable "tailscale_hostname" {
+  description = "Tailscale hostname for the server."
+  type        = string
+  default     = ""
+}
+
+variable "k3s_cluster_token" {
+  description = "Stable k3s cluster token used by the server and workers."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "k8s_service_account_issuer_enable" {
+  description = "Whether to configure a Kubernetes service-account issuer on the server."
+  type        = bool
+  default     = false
+}
+
+variable "k8s_service_account_issuer_url" {
+  description = "Service-account issuer URL for the k3s server."
+  type        = string
+  default     = ""
+}
+
+variable "k8s_service_account_jwks_uri" {
+  description = "Optional JWKS URI for the k3s service-account issuer."
+  type        = string
+  default     = ""
+}

@@ -70,6 +70,13 @@ resource "google_compute_address" "server" {
   region = var.region
 }
 
+resource "google_compute_address" "server_internal_ip" {
+  name         = "${var.server_name}-internal-ip"
+  region       = var.region
+  subnetwork   = google_compute_subnetwork.server.id
+  address_type = "INTERNAL"
+}
+
 resource "google_service_account" "server" {
   account_id   = replace(substr("${var.server_name}-sa", 0, 30), "_", "-")
   display_name = "${var.server_name} service account"
@@ -95,6 +102,16 @@ resource "google_compute_instance" "server" {
 
   metadata = {
     ssh-keys = "${var.ssh_user}:${var.ssh_public_key}"
+    user-data = templatefile("${path.module}/templates/cloud-init.yaml.tftpl", {
+      k3s_cluster_token                 = var.k3s_cluster_token
+      tailscale_enable                  = var.tailscale_enable
+      tailscale_auth_key                = var.tailscale_auth_key
+      tailscale_accept_dns              = tostring(var.tailscale_accept_dns)
+      tailscale_hostname                = coalesce(var.tailscale_hostname, var.server_name)
+      k8s_service_account_issuer_enable = var.k8s_service_account_issuer_enable
+      k8s_service_account_issuer_url    = var.k8s_service_account_issuer_url
+      k8s_service_account_jwks_uri      = var.k8s_service_account_jwks_uri
+    })
   }
 
   boot_disk {
@@ -107,6 +124,7 @@ resource "google_compute_instance" "server" {
 
   network_interface {
     subnetwork = google_compute_subnetwork.server.id
+    network_ip = google_compute_address.server_internal_ip.address
 
     access_config {
       nat_ip = google_compute_address.server.address

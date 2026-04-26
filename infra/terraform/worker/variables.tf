@@ -33,23 +33,25 @@ variable "server_name" {
   type        = string
 }
 
-variable "worker_name" {
-  description = "Compute Engine instance name for the worker."
-  type        = string
-}
-
-variable "worker_internal_ip" {
-  description = "Reserved internal IP for the worker VM."
-  type        = string
+variable "workers" {
+  description = "Desired worker set keyed by worker instance name."
+  type = map(object({
+    internal_ip        = string
+    worker_tag         = optional(string)
+    machine_type       = optional(string)
+    boot_disk_size_gb  = optional(number)
+    tailscale_auth_key = optional(string)
+    tailscale_hostname = optional(string)
+  }))
 }
 
 variable "worker_tag" {
-  description = "Network tag for the worker."
+  description = "Default network tag for workers."
   type        = string
 }
 
 variable "machine_type" {
-  description = "Compute Engine machine type."
+  description = "Default Compute Engine machine type."
   type        = string
 }
 
@@ -75,34 +77,28 @@ variable "ssh_public_key" {
 }
 
 variable "boot_disk_size_gb" {
-  description = "Boot disk size in GB."
+  description = "Default boot disk size in GB."
   type        = number
   default     = 40
 }
 
 variable "tailscale_enable" {
-  description = "Whether to enroll the worker VM into Tailscale during boot."
+  description = "Whether to enroll worker VMs into Tailscale during boot."
   type        = bool
   default     = false
 }
 
 variable "tailscale_auth_key" {
-  description = "Tailscale auth key for worker enrollment."
+  description = "Default Tailscale auth key for worker enrollment."
   type        = string
   default     = ""
   sensitive   = true
 }
 
 variable "tailscale_accept_dns" {
-  description = "Whether the worker should accept DNS settings from Tailscale."
+  description = "Whether workers should accept DNS settings from Tailscale."
   type        = bool
   default     = false
-}
-
-variable "tailscale_hostname" {
-  description = "Tailscale hostname for the worker."
-  type        = string
-  default     = ""
 }
 
 variable "k3s_cluster_token" {
