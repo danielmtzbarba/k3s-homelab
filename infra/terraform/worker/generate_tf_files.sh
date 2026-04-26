@@ -22,6 +22,7 @@ SSH_PUBLIC_KEY="$(tr -d '\n' < "${SSH_PUBLIC_KEY_PATH}")"
 WORKER_PREFIX="${TF_STATE_WORKER_PREFIX:-worker}"
 CLUSTER_NODE_TAG="${CLUSTER_TAG:-${SERVER_TAG}}"
 DEFAULT_WORKER_TAG="${WORKER_TAG:-k3s-worker}"
+DEFAULT_WORKER_NODE_LABELS="${WORKER_NODE_LABELS:-}"
 DEFAULT_MACHINE_TYPE="${WORKER_MACHINE_TYPE:-e2-standard-2}"
 DEFAULT_BOOT_DISK_SIZE_GB="${BOOT_DISK_SIZE_GB:-40}"
 DEFAULT_WORKER_NAME="${WORKER_NAME:-k3s-worker-1}"
@@ -86,6 +87,11 @@ for name, worker in workers.items():
     print(f"    internal_ip = {json.dumps(worker['internal_ip'])}")
     if worker.get("worker_tag"):
         print(f"    worker_tag = {json.dumps(worker['worker_tag'])}")
+    if worker.get("node_labels"):
+        print("    node_labels = [")
+        for label in worker["node_labels"]:
+            print(f"      {json.dumps(label)},")
+        print("    ]")
     if worker.get("machine_type"):
         print(f"    machine_type = {json.dumps(worker['machine_type'])}")
     if worker.get("boot_disk_size_gb") is not None:
@@ -105,6 +111,16 @@ PY
   "${DEFAULT_WORKER_NAME}" = {
     internal_ip = "${DEFAULT_WORKER_INTERNAL_IP}"
     worker_tag = "${DEFAULT_WORKER_TAG}"
+$(if [[ -n "${DEFAULT_WORKER_NODE_LABELS}" ]]; then
+  printf '    node_labels = [\n'
+  IFS=',' read -r -a labels <<< "${DEFAULT_WORKER_NODE_LABELS}"
+  for label in "${labels[@]}"; do
+    trimmed="${label#"${label%%[![:space:]]*}"}"
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+    printf '      "%s",\n' "${trimmed}"
+  done
+  printf '    ]\n'
+fi)
     machine_type = "${DEFAULT_MACHINE_TYPE}"
     boot_disk_size_gb = ${DEFAULT_BOOT_DISK_SIZE_GB}
     tailscale_auth_key = "${DEFAULT_TAILSCALE_AUTH_KEY}"
@@ -126,6 +142,19 @@ cluster_tag        = "${CLUSTER_NODE_TAG}"
 server_name        = "${SERVER_NAME}"
 workers            = ${WORKERS_HCL}
 worker_tag         = "${DEFAULT_WORKER_TAG}"
+node_labels        = [$(if [[ -n "${DEFAULT_WORKER_NODE_LABELS}" ]]; then
+  IFS=',' read -r -a labels <<< "${DEFAULT_WORKER_NODE_LABELS}"
+  first=1
+  for label in "${labels[@]}"; do
+    trimmed="${label#"${label%%[![:space:]]*}"}"
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+    if [[ $first -eq 0 ]]; then
+      printf ', '
+    fi
+    printf '"%s"' "${trimmed}"
+    first=0
+  done
+fi)]
 machine_type       = "${DEFAULT_MACHINE_TYPE}"
 image_family       = "${IMAGE_FAMILY}"
 image_project      = "${IMAGE_PROJECT}"

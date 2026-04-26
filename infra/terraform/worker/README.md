@@ -60,10 +60,14 @@ For real multi-worker reconciliation, prefer one of these:
   JSON object keyed by worker name. Each value may define:
   - `internal_ip` (required)
   - `worker_tag`
+  - `node_labels`
   - `machine_type`
   - `boot_disk_size_gb`
   - `tailscale_auth_key`
   - `tailscale_hostname`
+
+`node_labels` are applied during worker bootstrap and can be used by workload
+`nodeSelector`s instead of provider-generated node hostnames.
 
 - `WORKERS_TFVARS_PATH`
   Path to an HCL snippet file that defines the `workers = { ... }` map directly.

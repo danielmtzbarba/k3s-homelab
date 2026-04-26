@@ -38,6 +38,7 @@ variable "workers" {
   type = map(object({
     internal_ip        = string
     worker_tag         = optional(string)
+    node_labels        = optional(list(string))
     machine_type       = optional(string)
     boot_disk_size_gb  = optional(number)
     tailscale_auth_key = optional(string)
@@ -48,6 +49,12 @@ variable "workers" {
 variable "worker_tag" {
   description = "Default network tag for workers."
   type        = string
+}
+
+variable "node_labels" {
+  description = "Default k3s node labels to apply to workers during bootstrap."
+  type        = list(string)
+  default     = []
 }
 
 variable "machine_type" {

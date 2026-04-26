@@ -21,7 +21,7 @@ spec:
         environment: prod
     spec:
       nodeSelector:
-        kubernetes.io/hostname: k3s-worker-1
+        homelab.danielmtz/workload-role: quant
       imagePullSecrets:
         - name: ghcr-pull-secret
       containers:

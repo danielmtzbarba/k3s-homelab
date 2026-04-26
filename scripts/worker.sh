@@ -14,6 +14,7 @@ usage() {
 Usage:
   sh scripts/worker.sh plan
   sh scripts/worker.sh apply
+  sh scripts/worker.sh label-nodes
   sh scripts/worker.sh join [worker-name]
   sh scripts/worker.sh destroy
 EOF
@@ -49,6 +50,69 @@ load_env() {
   TAILSCALE_ENABLE="${TAILSCALE_ENABLE:-false}"
   TAILSCALE_AUTH_KEY="${TAILSCALE_AUTH_KEY:-}"
   TAILSCALE_ACCEPT_DNS="${TAILSCALE_ACCEPT_DNS:-false}"
+}
+
+worker_node_labels_json() {
+  if [ -n "${WORKERS_JSON:-}" ]; then
+    python3 - <<'PY'
+import json
+import os
+import sys
+
+workers = json.loads(os.environ["WORKERS_JSON"])
+result = {}
+for name, worker in workers.items():
+    labels = worker.get("node_labels") or []
+    if labels:
+        result[name] = labels
+print(json.dumps(result))
+PY
+    return
+  fi
+
+  if [ -n "${WORKER_NAME:-}" ] && [ -n "${WORKER_NODE_LABELS:-}" ]; then
+    python3 - <<'PY'
+import json
+import os
+
+labels = [item.strip() for item in os.environ["WORKER_NODE_LABELS"].split(",") if item.strip()]
+print(json.dumps({os.environ["WORKER_NAME"]: labels} if labels else {}))
+PY
+    return
+  fi
+
+  printf '%s\n' '{}'
+}
+
+label_worker_nodes() {
+  require_cmd kubectl
+
+  WORKER_LABELS_JSON="$(worker_node_labels_json)"
+
+  if [ "${WORKER_LABELS_JSON}" = "{}" ]; then
+    echo "No worker node labels configured; skipping node label reconciliation."
+    return
+  fi
+
+  WORKER_LABELS_JSON="${WORKER_LABELS_JSON}" python3 - <<'PY' | while IFS='|' read -r worker node_labels; do
+import json
+import os
+
+data = json.loads(os.environ["WORKER_LABELS_JSON"])
+for worker, labels in data.items():
+    print(f"{worker}|{' '.join(labels)}")
+PY
+    if [ -z "${node_labels}" ]; then
+      continue
+    fi
+    node_name="$(kubectl get nodes -o name | sed 's|^node/||' | grep "^${worker}\." | head -n 1 || true)"
+    if [ -z "${node_name}" ]; then
+      echo "Could not find Kubernetes node for worker ${worker}; skipping label reconciliation." >&2
+      continue
+    fi
+    # shellcheck disable=SC2086
+    kubectl label node "${node_name}" ${node_labels} --overwrite
+  done
 }
 
 init_worker_stack() {
@@ -97,6 +161,10 @@ main() {
     apply)
       init_worker_stack
       terraform apply
+      label_worker_nodes
+      ;;
+    label-nodes)
+      label_worker_nodes
       ;;
     join)
       join_worker "${2:-}"

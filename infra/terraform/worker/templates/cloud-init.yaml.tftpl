@@ -22,6 +22,12 @@ write_files:
     content: |
       server: "${k3s_url}"
       token: "${k3s_cluster_token}"
+%{ if length(node_labels) > 0 ~}
+      node-label:
+%{ for label in node_labels ~}
+        - "${label}"
+%{ endfor ~}
+%{ endif ~}
 %{ endif ~}
 
 runcmd:

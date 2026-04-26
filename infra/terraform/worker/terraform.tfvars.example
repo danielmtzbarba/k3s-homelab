@@ -8,15 +8,18 @@ server_name         = "k3s-server-1"
 workers = {
   "k3s-worker-1" = {
     internal_ip        = "10.10.0.3"
+    node_labels        = ["homelab.danielmtz/workload-role=quant"]
     tailscale_hostname = "k3s-worker-1"
   }
   "k3s-worker-2" = {
     internal_ip        = "10.10.0.4"
+    node_labels        = ["homelab.danielmtz/workload-role=web"]
     machine_type       = "e2-standard-4"
     tailscale_hostname = "k3s-worker-2"
   }
 }
 worker_tag          = "k3s-worker"
+node_labels         = []
 machine_type        = "e2-standard-2"
 image_family        = "ubuntu-2404-lts-amd64"
 image_project       = "ubuntu-os-cloud"

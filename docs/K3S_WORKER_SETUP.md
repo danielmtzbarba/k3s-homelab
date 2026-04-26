@@ -82,10 +82,12 @@ Option 1:
 WORKERS_JSON='{
   "k3s-worker-1": {
     "internal_ip": "10.10.0.3",
+    "node_labels": ["homelab.danielmtz/workload-role=quant"],
     "tailscale_hostname": "k3s-worker-1"
   },
   "k3s-worker-2": {
     "internal_ip": "10.10.0.4",
+    "node_labels": ["homelab.danielmtz/workload-role=web"],
     "machine_type": "e2-standard-4",
     "tailscale_hostname": "k3s-worker-2"
   }
@@ -97,6 +99,10 @@ Option 2:
 - set `WORKERS_TFVARS_PATH` to an HCL file that defines the `workers = { ... }` map directly
 
 `worker.sh apply` then reconciles the full desired worker set in one Terraform apply.
+
+If `node_labels` are configured, `worker.sh apply` also reconciles those labels onto the
+live Kubernetes nodes after Terraform finishes so workloads can select stable custom
+labels such as `homelab.danielmtz/workload-role=quant` instead of cloud-generated hostnames.
 
 ## 3. Verify the Worker
 

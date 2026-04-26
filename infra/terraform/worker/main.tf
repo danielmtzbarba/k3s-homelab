@@ -17,6 +17,7 @@ locals {
     for name, worker in var.workers : name => {
       internal_ip        = worker.internal_ip
       worker_tag         = coalesce(try(worker.worker_tag, null), var.worker_tag)
+      node_labels        = coalesce(try(worker.node_labels, null), var.node_labels)
       machine_type       = coalesce(try(worker.machine_type, null), var.machine_type)
       boot_disk_size_gb  = coalesce(try(worker.boot_disk_size_gb, null), var.boot_disk_size_gb)
       tailscale_auth_key = coalesce(try(worker.tailscale_auth_key, null), var.tailscale_auth_key)
@@ -66,6 +67,7 @@ resource "google_compute_instance" "worker" {
     user-data = templatefile("${path.module}/templates/cloud-init.yaml.tftpl", {
       k3s_url              = "https://${data.google_compute_instance.server.network_interface[0].network_ip}:6443"
       k3s_cluster_token    = var.k3s_cluster_token
+      node_labels          = each.value.node_labels
       tailscale_enable     = var.tailscale_enable
       tailscale_auth_key   = each.value.tailscale_auth_key
       tailscale_accept_dns = tostring(var.tailscale_accept_dns)
