@@ -29,6 +29,19 @@ DEFAULT_WORKER_INTERNAL_IP="${WORKER_INTERNAL_IP:-10.10.0.3}"
 DEFAULT_TAILSCALE_HOSTNAME="${TAILSCALE_WORKER_HOSTNAME:-${DEFAULT_WORKER_NAME}}"
 DEFAULT_TAILSCALE_AUTH_KEY="${TAILSCALE_WORKER_AUTH_KEY:-${TAILSCALE_AUTH_KEY:-}}"
 
+normalize_k3s_cluster_token() {
+  local token="${1:-}"
+
+  if [[ "${token}" == *"::"* ]]; then
+    printf '%s' "${token##*::}"
+    return
+  fi
+
+  printf '%s' "${token}"
+}
+
+K3S_CLUSTER_TOKEN_NORMALIZED="$(normalize_k3s_cluster_token "${K3S_CLUSTER_TOKEN:-}")"
+
 render_workers_hcl() {
   if [[ -n "${WORKERS_TFVARS_PATH:-}" ]]; then
     if [[ ! -f "${WORKERS_TFVARS_PATH}" ]]; then
@@ -122,7 +135,7 @@ boot_disk_size_gb  = ${DEFAULT_BOOT_DISK_SIZE_GB}
 tailscale_enable   = ${TAILSCALE_ENABLE:-false}
 tailscale_auth_key = "${DEFAULT_TAILSCALE_AUTH_KEY}"
 tailscale_accept_dns = ${TAILSCALE_ACCEPT_DNS:-false}
-k3s_cluster_token  = "${K3S_CLUSTER_TOKEN:-}"
+k3s_cluster_token  = "${K3S_CLUSTER_TOKEN_NORMALIZED}"
 EOF
 
 cat > backend.hcl <<EOF

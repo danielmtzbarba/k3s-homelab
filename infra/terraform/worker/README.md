@@ -46,6 +46,7 @@ Recommended inputs in `.env` for the backward-compatible single-worker path:
 
 - `K3S_CLUSTER_TOKEN`
   Stable shared token used by the server and worker bootstraps.
+  If you paste a full secure k3s token like `K10<hash>::<secret>`, the generator strips it back to the shared secret before cloud-init uses it.
 
 - `TAILSCALE_WORKER_AUTH_KEY`
   Prefer a dedicated ephemeral auth key for the worker lifecycle.

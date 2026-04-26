@@ -20,6 +20,19 @@ fi
 
 SSH_PUBLIC_KEY="$(tr -d '\n' < "${SSH_PUBLIC_KEY_PATH}")"
 
+normalize_k3s_cluster_token() {
+  local token="${1:-}"
+
+  if [[ "${token}" == *"::"* ]]; then
+    printf '%s' "${token##*::}"
+    return
+  fi
+
+  printf '%s' "${token}"
+}
+
+K3S_CLUSTER_TOKEN_NORMALIZED="$(normalize_k3s_cluster_token "${K3S_CLUSTER_TOKEN:-}")"
+
 cat > terraform.auto.tfvars <<EOF
 project_id       = "${PROJECT_ID}"
 region           = "${REGION}"
@@ -43,7 +56,7 @@ tailscale_enable = ${TAILSCALE_ENABLE:-false}
 tailscale_auth_key = "${TAILSCALE_AUTH_KEY:-}"
 tailscale_accept_dns = ${TAILSCALE_ACCEPT_DNS:-false}
 tailscale_hostname = "${TAILSCALE_HOSTNAME:-$SERVER_NAME}"
-k3s_cluster_token = "${K3S_CLUSTER_TOKEN:-}"
+k3s_cluster_token = "${K3S_CLUSTER_TOKEN_NORMALIZED}"
 k8s_service_account_issuer_enable = ${K8S_SERVICE_ACCOUNT_ISSUER_ENABLE:-false}
 k8s_service_account_issuer_url = "${K8S_SERVICE_ACCOUNT_ISSUER_URL:-}"
 k8s_service_account_jwks_uri = "${K8S_SERVICE_ACCOUNT_JWKS_URI:-}"

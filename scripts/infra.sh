@@ -9,6 +9,9 @@ REMOTE_LIB="${ROOT_DIR}/scripts/lib_remote_access.sh"
 BOOTSTRAP_DIR="${ROOT_DIR}/infra/terraform/bootstrap"
 SERVER_DIR="${ROOT_DIR}/infra/terraform/server"
 WORKER_DIR="${ROOT_DIR}/infra/terraform/worker"
+ENVS_DIR="${ROOT_DIR}/infra/envs"
+GCP_PLATFORM_ENV_FILE="${ENVS_DIR}/gcp.platform.env"
+GCP_ARGOCD_ENV_FILE="${ENVS_DIR}/gcp.argocd.env"
 
 usage() {
   cat <<'EOF'
@@ -94,6 +97,26 @@ validate_prereqs() {
     echo "SSH public key file not found: ${SSH_PUBLIC_KEY_PATH}" >&2
     exit 1
   fi
+}
+
+run_argocd_secret_stack() {
+  cd "${ROOT_DIR}"
+  if [ -f "${GCP_ARGOCD_ENV_FILE}" ]; then
+    sh ./scripts/setup_argocd_secret_stack.sh "${GCP_ARGOCD_ENV_FILE}"
+    return
+  fi
+
+  sh ./scripts/setup_argocd_secret_stack.sh
+}
+
+run_tailscale_secret_stack() {
+  cd "${ROOT_DIR}"
+  if [ -f "${GCP_PLATFORM_ENV_FILE}" ]; then
+    sh ./scripts/setup_tailscale_operator_secret_stack.sh "${GCP_PLATFORM_ENV_FILE}"
+    return
+  fi
+
+  sh ./scripts/setup_tailscale_operator_secret_stack.sh
 }
 
 run_server_setup() {
@@ -233,13 +256,20 @@ tailscale_secret_stack_ready() {
   kubectl get secret operator-oauth -n tailscale >/dev/null 2>&1
 }
 
+argocd_secret_stack_ready() {
+  kubectl get secret repo-k3s-homelab -n argocd >/dev/null 2>&1 &&
+    kubectl get secret k3s-homelab-writeback -n argocd >/dev/null 2>&1 &&
+    kubectl get secret ghcr-pull-secret -n argocd >/dev/null 2>&1
+}
+
 run_platform_bootstrap() {
   echo "Bootstrapping platform components..."
   echo "  1. cert-manager and shared issuer"
   echo "  2. Argo CD"
   echo "  3. External Secrets"
-  echo "  4. Tailscale operator secret stack, if GCP secret env files exist"
-  echo "  5. Tailscale Kubernetes Operator"
+  echo "  4. Argo CD secret stack, if GCP secret env files exist"
+  echo "  5. Tailscale operator secret stack, if GCP secret env files exist"
+  echo "  6. Tailscale Kubernetes Operator"
   echo
 
   run_deploy_addons
@@ -247,12 +277,18 @@ run_platform_bootstrap() {
   run_bootstrap_external_secrets
 
   if has_gcp_secrets_env; then
+    if argocd_secret_stack_ready; then
+      echo "Argo CD secret stack already configured; skipping GCP secret sync/bootstrap."
+    else
+      echo "Configuring Argo CD secret stack from configured GCP secret env source..."
+      run_argocd_secret_stack
+    fi
+
     if tailscale_secret_stack_ready; then
       echo "Tailscale operator secret stack already configured; skipping GCP secret sync/bootstrap."
     else
       echo "Configuring Tailscale operator secret stack from configured GCP secret env source..."
-      cd "${ROOT_DIR}"
-      sh ./scripts/setup_tailscale_operator_secret_stack.sh
+      run_tailscale_secret_stack
     fi
     run_deploy_tailscale_operator
   else

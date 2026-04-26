@@ -62,7 +62,8 @@ Notes:
 
 - `WORKER_INTERNAL_IP` keeps the worker node address stable across recreation.
 - `TAILSCALE_WORKER_AUTH_KEY` should preferably be a dedicated ephemeral key.
-- `K3S_CLUSTER_TOKEN` is the stable shared cluster token used by the server and worker boot paths.
+- `K3S_CLUSTER_TOKEN` should be the stable shared secret, not the full secure node token with the embedded `K10<ca-hash>::` prefix.
+- if you do paste a full secure token into `.env`, the Terraform generators now normalize it back to the shared secret before boot-time join.
 
 With those values set, `sh scripts/worker.sh apply` should be enough for the worker to:
 

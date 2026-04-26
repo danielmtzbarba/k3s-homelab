@@ -87,6 +87,7 @@ The current cluster path has been validated end to end:
 - **Cloud-init server bootstrap** so recreated servers can bring up `k3s server` and Tailscale without SSH.
 - **Cloud-init worker bootstrap** so recreated workers can rejoin Tailscale and k3s without SSH.
 - **Remote kubeconfig automation** for local cluster access after server creation.
+- **Tailnet-aware kubeconfig retrieval** that waits for Tailscale/MagicDNS readiness and clears the stale server host key on recreate.
 - **Cluster add-on deployment path** for cert-manager and shared issuer resources.
 - **Canonical app path** for the website workload with `kustomize` and TLS included.
 - **Tailscale-based admin access** for SSH and kubeconfig after cluster bootstrap.
@@ -183,6 +184,8 @@ Use `sh scripts/infra.sh server-setup` only as a recovery path for an existing s
 - set `K3S_CLUSTER_TOKEN`
 - optionally set the service-account issuer inputs
 - run `sh scripts/infra.sh apply-kubeconfig`
+
+`apply-kubeconfig` now retries the fetch while the server is still joining the tailnet and removes the stale `k3s-server-1` SSH host key before retrying after a recreate.
 
 ## Current Scope
 

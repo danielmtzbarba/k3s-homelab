@@ -16,6 +16,8 @@ Env source model:
 
 2. `infra.sh apply-kubeconfig`
    Create or reconcile the server infrastructure stack and fetch kubeconfig.
+   In tailnet mode, the kubeconfig fetch now waits for Tailscale/MagicDNS readiness
+   and clears the stale `k3s-server-1` SSH host key before retrying.
 
 3. verify the server boot path
    Cloud-init should bring up `k3s server` and optional Tailscale during VM boot
@@ -78,6 +80,8 @@ Env source model:
 
 - `fetch_kubeconfig.sh`
   Pull kubeconfig from the server and rewrite the endpoint for local access.
+  In Tailscale mode it retries until the server is reachable on the tailnet and
+  removes the stale server host key before reconnecting after a VM recreate.
 
 - `lib_remote_access.sh`
   Shared helper that chooses between public `gcloud` access and Tailscale SSH/SCP.

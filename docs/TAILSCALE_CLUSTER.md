@@ -90,16 +90,18 @@ KUBECONFIG_ENDPOINT_MODE="tailscale"
 Run:
 
 ```bash
-sh scripts/infra.sh server-setup
+sh scripts/infra.sh apply-kubeconfig
 ```
 
-This now:
+This preferred path now:
 
-- installs Tailscale on the server
+- creates or reconciles the server VM
+- lets cloud-init install Tailscale on boot
 - joins the tailnet using the auth key
-- gets the server Tailscale IPv4 address
-- adds that Tailscale IP as a `tls-san` for k3s
-- restarts k3s
+- lets cloud-init add the Tailscale IP as a `tls-san` for k3s
+- fetches kubeconfig after the server is actually reachable
+
+Use `sh scripts/infra.sh server-setup` only as the manual repair path for an existing server.
 
 ### 3. Re-fetch Kubeconfig
 
@@ -110,6 +112,7 @@ sh scripts/infra.sh kubeconfig
 ```
 
 With `KUBECONFIG_ENDPOINT_MODE="tailscale"`, the kubeconfig fetch now rewrites the API endpoint to the server Tailscale IP instead of the public IP.
+It also waits for tailnet readiness and removes the stale `k3s-server-1` SSH host key before retrying after a server recreate.
 
 ### 4. Verify Access
 
@@ -144,6 +147,7 @@ Do not start with the worker. The server is the important first admin entrypoint
 ### Step 2. Join The Server To Your Tailnet
 
 This is now handled by `scripts/k3s_server_setup.sh` when `TAILSCALE_ENABLE="true"` and `TAILSCALE_AUTH_KEY` is present.
+For the preferred path, that setup is executed by cloud-init during `infra.sh apply` / `infra.sh apply-kubeconfig`, not by a follow-up SSH session.
 
 ### Step 3. Test SSH Over Tailscale
 

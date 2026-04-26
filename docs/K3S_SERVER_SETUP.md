@@ -32,6 +32,8 @@ TAILSCALE_ACCEPT_DNS="false"
 K3S_CLUSTER_TOKEN="..."
 ```
 
+Use the stable shared secret for `K3S_CLUSTER_TOKEN`, not the full secure node token with an embedded CA hash. If `.env` contains a full secure token such as `K10<hash>::<secret>`, the Terraform generator now normalizes it back to the shared secret before server bootstrap.
+
 Optional issuer settings:
 
 ```bash
@@ -248,6 +250,12 @@ If you want the normal one-shot path from your local machine, use:
 sh scripts/infra.sh apply-kubeconfig
 export KUBECONFIG="$HOME/.kube/config-k3s-lab"
 ```
+
+In Tailscale mode, `apply-kubeconfig` / `fetch_kubeconfig.sh` now:
+
+- waits for the server to become reachable over the tailnet instead of failing immediately
+- removes the stale `k3s-server-1` SSH host key before retrying after a recreate
+- rewrites the kubeconfig to the server Tailscale IP when `KUBECONFIG_ENDPOINT_MODE="tailscale"`
 
 Then continue with the normal platform path:
 
