@@ -9,5 +9,3 @@ resources:
   - influxdb-statefulset.yaml
   - mt5-service.yaml
   - mt5-endpoints.yaml
-  - sync-service.yaml
-  - sync-endpoints.yaml

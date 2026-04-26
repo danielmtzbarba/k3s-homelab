@@ -9,6 +9,5 @@ over the same `Namespace` or `ghcr-pull-secret` resource.
 It also owns the temporary bridge services for the still-external execution plane:
 
 - `quant-engine-mt5-api:8000` -> legacy MT5 service
-- `quant-engine-sync:8080` -> legacy sync service
 
 It also owns the shared in-cluster InfluxDB instance used by the quant workloads.

@@ -21,13 +21,14 @@ execution plane:
 
 - `Service/quant-engine-mt5-api`
 - `Endpoints/quant-engine-mt5-api`
-- `Service/quant-engine-sync`
-- `Endpoints/quant-engine-sync`
 
 That keeps stable in-cluster service names while routing:
 
 - `quant-engine-mt5-api:8000` -> legacy MT5 service
-- `quant-engine-sync:8080` -> legacy sync service
+
+`sync-service` now runs in-cluster and is addressed directly as:
+
+- `quant-engine-dev-sync-service:8080`
 
 Before this package can run, you still need:
 
