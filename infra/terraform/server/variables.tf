@@ -140,3 +140,27 @@ variable "k8s_service_account_jwks_uri" {
   type        = string
   default     = ""
 }
+
+variable "eso_gcpsm_enable" {
+  description = "Whether to provision the dedicated GCP service account and key for External Secrets Operator GCPSM access."
+  type        = bool
+  default     = true
+}
+
+variable "eso_gcpsm_service_account_id" {
+  description = "Service account ID to create for External Secrets Operator GCPSM access."
+  type        = string
+  default     = "eso-gcpsm"
+}
+
+variable "eso_gcpsm_key_create" {
+  description = "Whether Terraform should create a service account key for the ESO GCPSM service account."
+  type        = bool
+  default     = false
+}
+
+variable "eso_gcpsm_key_output_path" {
+  description = "Optional path for writing the generated ESO GCPSM service account key JSON."
+  type        = string
+  default     = ""
+}

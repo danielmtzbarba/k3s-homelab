@@ -15,6 +15,10 @@ Usage:
 Behavior:
   - default: create missing secrets only, skip secrets that already exist
   - --delete-existing: delete and recreate existing secrets before syncing
+
+Value resolution:
+  - prefer <NAME> when it is set
+  - otherwise use <NAME>_FILE and upload that file's contents
 EOF
 }
 
@@ -78,6 +82,7 @@ sync_secret() {
   MAPPING_VAR="$1"
   SECRET_ID="$(printenv "${MAPPING_VAR}")"
   VALUE_VAR="${MAPPING_VAR#GCP_SECRET_}"
+  VALUE_FILE_VAR="${VALUE_VAR}_FILE"
 
   if [ -z "${SECRET_ID}" ]; then
     echo "Skipping ${MAPPING_VAR}: empty secret ID." >&2
@@ -85,12 +90,23 @@ sync_secret() {
   fi
 
   SECRET_VALUE="$(printenv "${VALUE_VAR}" || true)"
+  SECRET_VALUE_FILE="$(printenv "${VALUE_FILE_VAR}" || true)"
+
+  if [ -z "${SECRET_VALUE}" ] && [ -n "${SECRET_VALUE_FILE}" ]; then
+    require_file "${SECRET_VALUE_FILE}"
+    SECRET_VALUE="$(cat "${SECRET_VALUE_FILE}")"
+  fi
+
   if [ -z "${SECRET_VALUE}" ]; then
-    echo "Missing value variable for ${MAPPING_VAR}: ${VALUE_VAR}" >&2
+    echo "Missing value variable for ${MAPPING_VAR}: set ${VALUE_VAR} or ${VALUE_FILE_VAR}" >&2
     exit 1
   fi
 
-  echo "Syncing ${SECRET_ID} from ${VALUE_VAR}..."
+  if [ -n "${SECRET_VALUE_FILE}" ] && [ -z "$(printenv "${VALUE_VAR}" || true)" ]; then
+    echo "Syncing ${SECRET_ID} from ${VALUE_FILE_VAR}..."
+  else
+    echo "Syncing ${SECRET_ID} from ${VALUE_VAR}..."
+  fi
 
   if gcloud secrets describe "${SECRET_ID}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
     if [ "${RECREATE_EXISTING}" = "true" ]; then

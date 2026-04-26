@@ -31,16 +31,13 @@ This repository currently mixes several secret patterns:
 
 External Secrets Operator gives the cluster one standard way to receive managed secrets from outside Kubernetes.
 
-## Workload Identity Federation
-
-The preferred next step for this repository is Google Workload Identity Federation rather than a long-lived JSON service account key.
+## GCP Secret Manager
 
 Supporting files now included:
 
-- `serviceaccount-gcpsm.yaml`
-  Dedicated Kubernetes service account for ESO to use against GCP Secret Manager.
+- `clustersecretstore-gcpsm.example.yaml`
+  Template for a `ClusterSecretStore` that authenticates to GCP Secret Manager
+  using a Kubernetes secret containing a dedicated GCP service account key.
 
-- `clustersecretstore-gcpsm-wif.example.yaml`
-  Template for a `ClusterSecretStore` that uses Google Workload Identity Federation on a self-managed cluster.
-
-See [docs/ESO_GCP_WIF.md](/home/danielmtz/Projects/kubernetes/k3s-homelab/docs/ESO_GCP_WIF.md) for the required k3s issuer configuration and Google IAM setup.
+The bootstrap flow now creates a `gcpsm-secret` Kubernetes secret in the
+`external-secrets` namespace and points the `ClusterSecretStore` at it.

@@ -4,6 +4,18 @@ resource "google_compute_network" "server" {
   routing_mode            = "REGIONAL"
 }
 
+locals {
+  eso_gcpsm_key_output_path = var.eso_gcpsm_key_output_path != "" ? var.eso_gcpsm_key_output_path : "${path.module}/generated/${var.eso_gcpsm_service_account_id}.json"
+}
+
+resource "terraform_data" "ensure_eso_gcpsm_key_dir" {
+  count = var.eso_gcpsm_enable && var.eso_gcpsm_key_create ? 1 : 0
+
+  provisioner "local-exec" {
+    command = "mkdir -p '${dirname(local.eso_gcpsm_key_output_path)}'"
+  }
+}
+
 resource "google_compute_subnetwork" "server" {
   name          = var.subnet_name
   region        = var.region
@@ -92,6 +104,33 @@ resource "google_project_iam_member" "server_monitoring" {
   project = var.project_id
   role    = "roles/monitoring.metricWriter"
   member  = "serviceAccount:${google_service_account.server.email}"
+}
+
+resource "google_service_account" "eso_gcpsm" {
+  count        = var.eso_gcpsm_enable ? 1 : 0
+  account_id   = replace(substr(var.eso_gcpsm_service_account_id, 0, 30), "_", "-")
+  display_name = "External Secrets Operator GCPSM"
+}
+
+resource "google_project_iam_member" "eso_gcpsm_secretmanager" {
+  count   = var.eso_gcpsm_enable ? 1 : 0
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.eso_gcpsm[0].email}"
+}
+
+resource "google_service_account_key" "eso_gcpsm" {
+  count              = var.eso_gcpsm_enable && var.eso_gcpsm_key_create ? 1 : 0
+  service_account_id = google_service_account.eso_gcpsm[0].name
+}
+
+resource "local_sensitive_file" "eso_gcpsm_key" {
+  count           = var.eso_gcpsm_enable && var.eso_gcpsm_key_create ? 1 : 0
+  filename        = local.eso_gcpsm_key_output_path
+  content         = base64decode(google_service_account_key.eso_gcpsm[0].private_key)
+  file_permission = "0600"
+
+  depends_on = [terraform_data.ensure_eso_gcpsm_key_dir]
 }
 
 resource "google_compute_instance" "server" {

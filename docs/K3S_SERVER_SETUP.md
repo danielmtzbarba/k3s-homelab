@@ -40,6 +40,9 @@ K8S_SERVICE_ACCOUNT_ISSUER_URL="https://k3s-server-1.<your-tailnet>.ts.net:6443"
 K8S_SERVICE_ACCOUNT_JWKS_URI="https://k3s-server-1.<your-tailnet>.ts.net:6443/openid/v1/jwks"
 ```
 
+These are not required for the current External Secrets on GCP path, which now
+uses a dedicated GCP service account credential instead of Kubernetes OIDC WIF.
+
 Then run:
 
 ```bash

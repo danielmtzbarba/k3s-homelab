@@ -45,7 +45,21 @@ import json
 import os
 import sys
 
-workers = json.loads(os.environ["WORKERS_JSON"])
+raw = os.environ["WORKERS_JSON"]
+
+try:
+    workers = json.loads(raw)
+except json.JSONDecodeError as exc:
+    stripped = raw.strip()
+    if stripped.startswith("{") and "=" in stripped:
+        print(stripped)
+        raise SystemExit(0)
+    raise SystemExit(
+        "WORKERS_JSON is not valid JSON. "
+        "Use real JSON, or provide an HCL-style object literal in WORKERS_JSON/WORKERS_TFVARS_PATH. "
+        f"JSON error: {exc}"
+    )
+
 if not isinstance(workers, dict) or not workers:
     raise SystemExit("WORKERS_JSON must decode to a non-empty object keyed by worker name.")
 

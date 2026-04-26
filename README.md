@@ -54,6 +54,7 @@ The repository currently supports:
   - server Tailscale join on boot
   - boot-time `k3s server` install
   - optional Kubernetes service-account issuer configuration
+- Terraform-managed GCP service account and key for External Secrets Operator Secret Manager access
 - local operator wrappers for:
   - infra bootstrap/apply/destroy
   - server setup

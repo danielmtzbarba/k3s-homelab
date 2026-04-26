@@ -226,3 +226,4 @@ override.tf.json
 *_override.tf.json
 backend.hcl
 terraform.auto.tfvars
+infra/terraform/server/generated/

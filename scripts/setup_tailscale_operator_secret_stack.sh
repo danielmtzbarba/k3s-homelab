@@ -6,11 +6,12 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 KUBECONFIG_PATH="${KUBECONFIG:-${HOME}/.kube/config-k3s-lab}"
 GCP_SECRETS_ENV_FILE="${1:-}"
 ENV_HELPER="${ROOT_DIR}/scripts/lib_env.sh"
-STORE_TEMPLATE="${ROOT_DIR}/kubernetes/platform/external-secrets/clustersecretstore-gcpsm-wif.example.yaml"
-SERVICE_ACCOUNT_MANIFEST="${ROOT_DIR}/kubernetes/platform/external-secrets/serviceaccount-gcpsm.yaml"
+STORE_TEMPLATE="${ROOT_DIR}/kubernetes/platform/external-secrets/clustersecretstore-gcpsm.example.yaml"
 TAILSCALE_EXTERNAL_SECRET_MANIFEST="${ROOT_DIR}/kubernetes/platform/tailscale-operator/externalsecret-operator-oauth.yaml"
-GRAFANA_EXTERNAL_SECRET_MANIFEST="${ROOT_DIR}/kubernetes/platform/observability/externalsecret-grafana-admin.yaml"
-ALERTMANAGER_EXTERNAL_SECRET_MANIFEST="${ROOT_DIR}/kubernetes/platform/observability/externalsecret-alertmanager-slack-webhook.yaml"
+GCPSM_SECRET_NAME="gcpsm-secret"
+GCPSM_SECRET_NAMESPACE="external-secrets"
+GCPSM_SECRET_KEY="secret-access-credentials"
+TAILSCALE_NAMESPACE="tailscale"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -37,11 +38,36 @@ render_cluster_secret_store() {
   TMP_FILE="$(mktemp)"
   sed \
     -e "s/your-gcp-project-id/${PROJECT_ID}/g" \
-    -e "s/PROJECT_NUMBER/${PROJECT_NUMBER}/g" \
-    -e "s/POOL_ID/${POOL_ID}/g" \
-    -e "s/PROVIDER_ID/${PROVIDER_ID}/g" \
     "${STORE_TEMPLATE}" > "${TMP_FILE}"
   printf '%s\n' "${TMP_FILE}"
+}
+
+apply_gcpsm_bootstrap_secret() {
+  SECRET_VALUE="${GCPSM_SECRET_ACCESS_CREDENTIALS:-}"
+  SECRET_FILE="${GCPSM_SECRET_ACCESS_CREDENTIALS_FILE:-}"
+
+  if [ -z "${SECRET_VALUE}" ] && [ -n "${SECRET_FILE}" ]; then
+    require_file "${SECRET_FILE}"
+    kubectl create secret generic "${GCPSM_SECRET_NAME}" \
+      -n "${GCPSM_SECRET_NAMESPACE}" \
+      --from-file="${GCPSM_SECRET_KEY}=${SECRET_FILE}" \
+      --dry-run=client -o yaml | kubectl apply -f -
+    return
+  fi
+
+  if [ -n "${SECRET_VALUE}" ]; then
+    TMP_SECRET_FILE="$(mktemp)"
+    printf '%s' "${SECRET_VALUE}" > "${TMP_SECRET_FILE}"
+    kubectl create secret generic "${GCPSM_SECRET_NAME}" \
+      -n "${GCPSM_SECRET_NAMESPACE}" \
+      --from-file="${GCPSM_SECRET_KEY}=${TMP_SECRET_FILE}" \
+      --dry-run=client -o yaml | kubectl apply -f -
+    rm -f "${TMP_SECRET_FILE}"
+    return
+  fi
+
+  echo "Required environment variable not set: GCPSM_SECRET_ACCESS_CREDENTIALS or GCPSM_SECRET_ACCESS_CREDENTIALS_FILE" >&2
+  exit 1
 }
 
 require_cmd gcloud
@@ -50,28 +76,20 @@ require_cmd sed
 require_file "${KUBECONFIG_PATH}"
 require_file "${ENV_HELPER}"
 require_file "${STORE_TEMPLATE}"
-require_file "${SERVICE_ACCOUNT_MANIFEST}"
 require_file "${TAILSCALE_EXTERNAL_SECRET_MANIFEST}"
-require_file "${GRAFANA_EXTERNAL_SECRET_MANIFEST}"
-require_file "${ALERTMANAGER_EXTERNAL_SECRET_MANIFEST}"
 
 # shellcheck disable=SC1090
 . "${ENV_HELPER}"
 load_gcp_secrets_env "${GCP_SECRETS_ENV_FILE:-}"
 require_env PROJECT_ID "${PROJECT_ID:-}"
-require_env POOL_ID "${POOL_ID:-}"
-require_env PROVIDER_ID "${PROVIDER_ID:-}"
-
-PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)')"
-require_env PROJECT_NUMBER "${PROJECT_NUMBER:-}"
 
 export KUBECONFIG="${KUBECONFIG_PATH}"
 
 echo "Syncing secrets to GCP Secret Manager..."
 sh "${ROOT_DIR}/scripts/sync_gcp_secrets.sh" "${GCP_SECRETS_ENV_FILE}"
 
-echo "Applying External Secrets service account..."
-kubectl apply -f "${SERVICE_ACCOUNT_MANIFEST}"
+echo "Applying External Secrets GCP Secret Manager bootstrap secret..."
+apply_gcpsm_bootstrap_secret
 
 echo "Rendering and applying ClusterSecretStore..."
 TMP_STORE_MANIFEST="$(render_cluster_secret_store)"
@@ -79,18 +97,20 @@ kubectl apply -f "${TMP_STORE_MANIFEST}"
 rm -f "${TMP_STORE_MANIFEST}"
 
 echo "Waiting for ClusterSecretStore gcp-secret-manager..."
-kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Ready")].status}'=True clustersecretstore/gcp-secret-manager --timeout=180s
+if ! kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="Ready")].status}'=True clustersecretstore/gcp-secret-manager --timeout=180s; then
+  echo "ClusterSecretStore gcp-secret-manager did not become Ready." >&2
+  kubectl describe clustersecretstore gcp-secret-manager || true
+  kubectl get clustersecretstore gcp-secret-manager -o yaml || true
+  kubectl get pods -n external-secrets -o wide || true
+  kubectl logs deployment/external-secrets -n external-secrets --tail=200 || true
+  exit 1
+fi
+
+echo "Ensuring namespace ${TAILSCALE_NAMESPACE} exists..."
+kubectl create namespace "${TAILSCALE_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
 
 echo "Applying Tailscale operator ExternalSecret..."
 kubectl apply -f "${TAILSCALE_EXTERNAL_SECRET_MANIFEST}"
-
-echo "Applying Grafana admin ExternalSecret..."
-kubectl apply -f "${GRAFANA_EXTERNAL_SECRET_MANIFEST}"
-
-if [ -n "${GCP_SECRET_ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ] && [ -n "${ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ]; then
-  echo "Applying Alertmanager Slack webhook ExternalSecret..."
-  kubectl apply -f "${ALERTMANAGER_EXTERNAL_SECRET_MANIFEST}"
-fi
 
 echo "Waiting for operator-oauth secret to exist..."
 ATTEMPTS=0
@@ -104,42 +124,11 @@ until kubectl get secret operator-oauth -n tailscale >/dev/null 2>&1; do
   sleep 5
 done
 
-echo "Waiting for observability/grafana-admin-credentials to exist..."
-ATTEMPTS=0
-until kubectl get secret grafana-admin-credentials -n observability >/dev/null 2>&1; do
-  ATTEMPTS=$((ATTEMPTS + 1))
-  if [ "${ATTEMPTS}" -ge 36 ]; then
-    echo "Timed out waiting for observability/grafana-admin-credentials to be created." >&2
-    kubectl describe externalsecret grafana-admin-credentials -n observability || true
-    exit 1
-  fi
-  sleep 5
-done
-
-if [ -n "${GCP_SECRET_ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ] && [ -n "${ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ]; then
-  echo "Waiting for observability/alertmanager-slack-webhook to exist..."
-  ATTEMPTS=0
-  until kubectl get secret alertmanager-slack-webhook -n observability >/dev/null 2>&1; do
-    ATTEMPTS=$((ATTEMPTS + 1))
-    if [ "${ATTEMPTS}" -ge 36 ]; then
-      echo "Timed out waiting for observability/alertmanager-slack-webhook to be created." >&2
-      kubectl describe externalsecret alertmanager-slack-webhook -n observability || true
-      exit 1
-    fi
-    sleep 5
-  done
-fi
-
 echo
 echo "Tailscale secret stack is configured."
 echo "Verification commands:"
 echo "  kubectl get clustersecretstore gcp-secret-manager"
+echo "  kubectl get secret -n ${GCPSM_SECRET_NAMESPACE} ${GCPSM_SECRET_NAME}"
 echo "  kubectl get externalsecret -n tailscale operator-oauth"
 echo "  kubectl get secret -n tailscale operator-oauth"
-echo "  kubectl get externalsecret -n observability grafana-admin-credentials"
-echo "  kubectl get secret -n observability grafana-admin-credentials"
-if [ -n "${GCP_SECRET_ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ] && [ -n "${ALERTMANAGER_SLACK_WEBHOOK_URL:-}" ]; then
-  echo "  kubectl get externalsecret -n observability alertmanager-slack-webhook"
-  echo "  kubectl get secret -n observability alertmanager-slack-webhook"
-fi
 echo "  sh scripts/infra.sh deploy-tailscale-operator"

@@ -91,6 +91,7 @@ Model:
 
 - each `GCP_SECRET_<NAME>` variable defines the GCP secret ID
 - the matching `<NAME>` variable defines the uploaded value
+- or `<NAME>_FILE` can point to a file whose contents should be uploaded
 
 Example:
 
@@ -109,12 +110,19 @@ GCP_SECRET_ALERTMANAGER_SLACK_WEBHOOK_URL="k3s-alertmanager-slack-webhook-url"
 ALERTMANAGER_SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
 ```
 
+For multiline or file-backed secrets such as the Argo CD repo SSH key:
+
+```bash
+GCP_SECRET_ARGOCD_REPO_SSH_PRIVATE_KEY="k3s-argocd-repo-ssh-private-key"
+ARGOCD_REPO_SSH_PRIVATE_KEY_FILE="$HOME/.ssh/id_ed25519_argocd"
+```
+
 By default, the script only creates missing secrets and skips any secret that already exists. That is the safe mode for repeated bootstrap runs.
 
 If you want the old delete/recreate behavior to avoid version buildup, pass `--delete-existing`. That also resets secret-level IAM bindings, so set:
 
 ```bash
-GCP_SECRET_ACCESSORS="principal://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/subject/system:serviceaccount:external-secrets:eso-gcpsm"
+GCP_SECRET_ACCESSORS="serviceAccount:eso-gcpsm@your-gcp-project-id.iam.gserviceaccount.com"
 ```
 
 Then run:
@@ -137,6 +145,23 @@ cp .env.example .env
 sh scripts/setup_tailscale_operator_secret_stack.sh
 sh scripts/infra.sh deploy-tailscale-operator
 ```
+
+For the GCP Secret Manager bootstrap credential used by External Secrets
+Operator itself, set one of:
+
+```bash
+GCPSM_SECRET_ACCESS_CREDENTIALS_FILE="${K3S_HOMELAB_ROOT}/infra/terraform/server/generated/eso-gcpsm.json"
+```
+
+or:
+
+```bash
+GCPSM_SECRET_ACCESS_CREDENTIALS='{"type":"service_account",...}'
+```
+
+If you keep the default Terraform server settings, that file is generated automatically
+by the server stack and no extra `gcloud iam service-accounts keys create ...` step is
+required.
 
 For the quant-engine migration slice, use:
 

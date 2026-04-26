@@ -23,3 +23,7 @@ k3s_cluster_token = ""
 k8s_service_account_issuer_enable = false
 k8s_service_account_issuer_url = ""
 k8s_service_account_jwks_uri = ""
+eso_gcpsm_enable = true
+eso_gcpsm_service_account_id = "eso-gcpsm"
+eso_gcpsm_key_create = false
+eso_gcpsm_key_output_path = "generated/eso-gcpsm.json"

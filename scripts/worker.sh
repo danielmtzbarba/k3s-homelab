@@ -26,6 +26,13 @@ require_cmd() {
   fi
 }
 
+require_file() {
+  if [ ! -f "$1" ]; then
+    echo "Required file not found: $1" >&2
+    exit 1
+  fi
+}
+
 load_env() {
   if [ ! -f "${ENV_FILE}" ]; then
     require_file "${ENV_HELPER}"

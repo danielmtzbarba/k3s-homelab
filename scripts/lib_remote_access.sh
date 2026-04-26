@@ -57,7 +57,7 @@ remote_copy_to() {
 
   if [ "${MODE}" = "tailscale" ]; then
     TARGET="$(remote_ssh_target)" || return 1
-    scp "${SRC}" "${TARGET}:${DEST}"
+    scp -o StrictHostKeyChecking=accept-new "${SRC}" "${TARGET}:${DEST}"
   else
     gcloud compute scp "${SRC}" "${SERVER_NAME}:${DEST}" --zone="${ZONE}"
   fi
@@ -69,7 +69,7 @@ remote_run() {
 
   if [ "${MODE}" = "tailscale" ]; then
     TARGET="$(remote_ssh_target)" || return 1
-    ssh "${TARGET}" "${CMD}"
+    ssh -o StrictHostKeyChecking=accept-new "${TARGET}" "${CMD}"
   else
     gcloud compute ssh "${SERVER_NAME}" --zone="${ZONE}" --command="${CMD}"
   fi

@@ -46,6 +46,16 @@ echo "Adding or updating the Tailscale Helm repository..."
 helm repo add "${TAILSCALE_REPO_NAME}" "${TAILSCALE_REPO_URL}" >/dev/null 2>&1 || true
 helm repo update "${TAILSCALE_REPO_NAME}"
 
+if kubectl get secret operator-oauth -n "${TAILSCALE_NAMESPACE}" >/dev/null 2>&1; then
+  echo "Annotating existing operator-oauth secret for Helm ownership..."
+  kubectl label secret operator-oauth -n "${TAILSCALE_NAMESPACE}" \
+    app.kubernetes.io/managed-by=Helm --overwrite
+  kubectl annotate secret operator-oauth -n "${TAILSCALE_NAMESPACE}" \
+    meta.helm.sh/release-name="${TAILSCALE_RELEASE}" \
+    meta.helm.sh/release-namespace="${TAILSCALE_NAMESPACE}" \
+    --overwrite
+fi
+
 set -- \
   --namespace "${TAILSCALE_NAMESPACE}" \
   --create-namespace

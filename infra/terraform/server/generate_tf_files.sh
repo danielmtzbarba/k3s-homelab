@@ -47,6 +47,10 @@ k3s_cluster_token = "${K3S_CLUSTER_TOKEN:-}"
 k8s_service_account_issuer_enable = ${K8S_SERVICE_ACCOUNT_ISSUER_ENABLE:-false}
 k8s_service_account_issuer_url = "${K8S_SERVICE_ACCOUNT_ISSUER_URL:-}"
 k8s_service_account_jwks_uri = "${K8S_SERVICE_ACCOUNT_JWKS_URI:-}"
+eso_gcpsm_enable = ${ESO_GCPSM_ENABLE:-true}
+eso_gcpsm_service_account_id = "${ESO_GCPSM_SERVICE_ACCOUNT_ID:-eso-gcpsm}"
+eso_gcpsm_key_create = ${ESO_GCPSM_KEY_CREATE:-false}
+eso_gcpsm_key_output_path = "${ESO_GCPSM_KEY_OUTPUT_PATH:-${ROOT_DIR}/infra/terraform/server/generated/${ESO_GCPSM_SERVICE_ACCOUNT_ID:-eso-gcpsm}.json}"
 EOF
 
 cat > backend.hcl <<EOF

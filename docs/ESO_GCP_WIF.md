@@ -1,5 +1,12 @@
 # ESO On GCP With Workload Identity Federation
 
+This document is retained for reference only.
+
+The current recommended path in this repository is a dedicated GCP service
+account credential stored in `external-secrets/gcpsm-secret`, because the k3s
+API issuer in this homelab is private and not a good fit for Google Workload
+Identity Federation automation.
+
 This document defines the clean path for using External Secrets Operator with Google Cloud Secret Manager on this self-managed k3s cluster without long-lived service account keys.
 
 ## Goal
@@ -214,7 +221,7 @@ spec:
             name: eso-gcpsm
             namespace: external-secrets
             audiences:
-              - https://iam.googleapis.com/
+              - //iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID
 ```
 
 Apply it:

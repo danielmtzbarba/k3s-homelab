@@ -106,7 +106,7 @@ Env source model:
 - `setup_tailscale_operator_secret_stack.sh`
   End-to-end wrapper for the Tailscale operator secret path:
   - sync GCP secrets
-  - apply `eso-gcpsm`
+  - create/update `external-secrets/gcpsm-secret`
   - render/apply the `ClusterSecretStore`
   - apply the Tailscale `ExternalSecret`
   - wait for `tailscale/operator-oauth`

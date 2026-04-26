@@ -132,6 +132,14 @@ run_bootstrap() {
   cd "${BOOTSTRAP_DIR}"
   sh ./generate_tf_files.sh
   terraform_init_local
+
+  if gcloud storage buckets describe "gs://${TF_STATE_BUCKET}" >/dev/null 2>&1; then
+    if ! terraform state show google_storage_bucket.tf_state >/dev/null 2>&1; then
+      echo "Importing existing backend bucket ${TF_STATE_BUCKET} into local bootstrap state..."
+      terraform import google_storage_bucket.tf_state "${TF_STATE_BUCKET}"
+    fi
+  fi
+
   terraform apply
 }
 
@@ -163,21 +171,89 @@ run_server_apply_kubeconfig() {
   run_kubeconfig
 }
 
+run_bootstrap_external_secrets() {
+  echo "Bootstrapping External Secrets via Argo CD..."
+  cd "${ROOT_DIR}"
+  kubectl apply -f ./kubernetes/platform/argocd/applications/external-secrets.yaml
+
+  echo "Waiting for Argo CD Application external-secrets to become Synced and Healthy..."
+  ATTEMPTS=0
+  while :; do
+    APP_SYNC_STATUS="$(kubectl get application -n argocd external-secrets -o jsonpath='{.status.sync.status}' 2>/dev/null || true)"
+    APP_HEALTH_STATUS="$(kubectl get application -n argocd external-secrets -o jsonpath='{.status.health.status}' 2>/dev/null || true)"
+
+    if [ "${APP_SYNC_STATUS}" = "Synced" ] && [ "${APP_HEALTH_STATUS}" = "Healthy" ]; then
+      break
+    fi
+
+    ATTEMPTS=$((ATTEMPTS + 1))
+    if [ "${ATTEMPTS}" -ge 48 ]; then
+      echo "Timed out waiting for Argo CD Application external-secrets to become Synced/Healthy." >&2
+      kubectl get application -n argocd external-secrets -o yaml || true
+      exit 1
+    fi
+    sleep 5
+  done
+
+  echo "Waiting for external-secrets namespace..."
+  ATTEMPTS=0
+  until kubectl get namespace external-secrets >/dev/null 2>&1; do
+    ATTEMPTS=$((ATTEMPTS + 1))
+    if [ "${ATTEMPTS}" -ge 36 ]; then
+      echo "Timed out waiting for namespace/external-secrets to be created." >&2
+      exit 1
+    fi
+    sleep 5
+  done
+
+  echo "Waiting for External Secrets controller deployment..."
+  ATTEMPTS=0
+  until kubectl get deployment external-secrets -n external-secrets >/dev/null 2>&1; do
+    ATTEMPTS=$((ATTEMPTS + 1))
+    if [ "${ATTEMPTS}" -ge 36 ]; then
+      echo "Timed out waiting for deployment/external-secrets to be created." >&2
+      kubectl get all -n external-secrets || true
+      exit 1
+    fi
+    sleep 5
+  done
+  kubectl rollout status deployment/external-secrets -n external-secrets --timeout=180s
+}
+
+tailscale_secret_stack_ready() {
+  if ! kubectl get clustersecretstore gcp-secret-manager >/dev/null 2>&1; then
+    return 1
+  fi
+
+  STORE_READY="$(kubectl get clustersecretstore gcp-secret-manager -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)"
+  if [ "${STORE_READY}" != "True" ]; then
+    return 1
+  fi
+
+  kubectl get secret operator-oauth -n tailscale >/dev/null 2>&1
+}
+
 run_platform_bootstrap() {
   echo "Bootstrapping platform components..."
   echo "  1. cert-manager and shared issuer"
   echo "  2. Argo CD"
-  echo "  3. Tailscale operator secret stack, if GCP secret env files exist"
-  echo "  4. Tailscale Kubernetes Operator"
+  echo "  3. External Secrets"
+  echo "  4. Tailscale operator secret stack, if GCP secret env files exist"
+  echo "  5. Tailscale Kubernetes Operator"
   echo
 
   run_deploy_addons
   run_deploy_argocd
+  run_bootstrap_external_secrets
 
   if has_gcp_secrets_env; then
-    echo "Configuring Tailscale operator secret stack from configured GCP secret env source..."
-    cd "${ROOT_DIR}"
-    sh ./scripts/setup_tailscale_operator_secret_stack.sh
+    if tailscale_secret_stack_ready; then
+      echo "Tailscale operator secret stack already configured; skipping GCP secret sync/bootstrap."
+    else
+      echo "Configuring Tailscale operator secret stack from configured GCP secret env source..."
+      cd "${ROOT_DIR}"
+      sh ./scripts/setup_tailscale_operator_secret_stack.sh
+    fi
     run_deploy_tailscale_operator
   else
     echo "Skipping Tailscale operator bootstrap."
