@@ -46,6 +46,17 @@ Current choices:
 - Grafana persistence enabled
 - Grafana admin credentials sourced from an `ExternalSecret` instead of a chart-generated random secret
 - `kube-etcd`, controller-manager, and scheduler scraping disabled because the first k3s target here is a practical working baseline, not full control-plane scraping perfection
+- stateful and control-plane observability workloads pinned to `k3s-server-1`
+
+Current placement policy:
+
+- keep Grafana, Alertmanager, Prometheus, Loki, MinIO, kube-state-metrics, the Prometheus operator, and Loki gateway on `k3s-server-1`
+- keep only per-node DaemonSets on every node:
+  - Promtail
+  - node exporter
+  - Loki canary
+
+This matters because the first persistence layer here is `local-path`, which uses node-local disk. Worker nodes are treated as more disposable than the server, so observability persistence belongs on the server.
 
 ### Logs
 
@@ -140,15 +151,18 @@ kubectl get pods -n observability
 kubectl get pvc -n observability
 ```
 
-## Important Limitation
+Expect the stateful PVC-backed workloads to land on `k3s-server-1`.
 
-Loki alone does not collect logs.
+## Log Collection
 
-It stores and serves logs once an agent sends them there.
+This repository now uses Promtail as the first log collector.
 
-The next observability step after this stack is to add a supported log collector, preferably Grafana Alloy rather than Promtail.
+Promtail runs as a DaemonSet and tails node-local pod logs on each node, then forwards them to Loki.
 
-Until that collector exists:
+That means:
 
-- metrics dashboards should work once the service `ServiceMonitor` resources are applied
-- Loki log panels will remain empty because Loki is not yet receiving Kubernetes pod logs
+- Loki stores and serves logs
+- Promtail performs node-local collection
+- Grafana can query Loki once both are healthy
+
+Promtail remains a per-node DaemonSet by design and should not be pinned to the server only, because doing so would stop worker-node log collection.

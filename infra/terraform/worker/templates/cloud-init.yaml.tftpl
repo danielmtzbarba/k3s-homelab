@@ -1,0 +1,44 @@
+#cloud-config
+package_update: false
+packages:
+  - curl
+  - ca-certificates
+
+write_files:
+  - path: /etc/modules-load.d/k3s.conf
+    permissions: "0644"
+    content: |
+      overlay
+      br_netfilter
+  - path: /etc/sysctl.d/99-k3s.conf
+    permissions: "0644"
+    content: |
+      net.ipv4.ip_forward=1
+      net.bridge.bridge-nf-call-iptables=1
+      net.bridge.bridge-nf-call-ip6tables=1
+%{ if k3s_cluster_token != "" ~}
+  - path: /etc/rancher/k3s/config.yaml
+    permissions: "0600"
+    content: |
+      server: "${k3s_url}"
+      token: "${k3s_cluster_token}"
+%{ endif ~}
+
+runcmd:
+  - mkdir -p /etc/rancher/k3s
+  - modprobe overlay
+  - modprobe br_netfilter
+  - sysctl --system
+%{ if tailscale_enable ~}
+  - bash -lc 'if ! command -v tailscale >/dev/null 2>&1; then curl -fsSL https://tailscale.com/install.sh | sh; fi'
+  - systemctl enable tailscaled
+  - systemctl restart tailscaled
+  - bash -lc 'tailscale up --auth-key=${tailscale_auth_key} --accept-dns=${tailscale_accept_dns} --hostname=${tailscale_hostname}'
+%{ endif ~}
+%{ if k3s_cluster_token != "" ~}
+  - bash -lc 'if systemctl list-unit-files | grep -q "^k3s\\.service"; then systemctl disable --now k3s || true; fi'
+  - bash -lc 'if [ -x /usr/local/bin/k3s-uninstall.sh ]; then /usr/local/bin/k3s-uninstall.sh || true; fi'
+  - bash -lc 'if ! systemctl is-enabled k3s-agent >/dev/null 2>&1; then curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent" K3S_URL="${k3s_url}" K3S_TOKEN="${k3s_cluster_token}" sh -; fi'
+  - systemctl enable k3s-agent
+  - systemctl restart k3s-agent
+%{ endif ~}

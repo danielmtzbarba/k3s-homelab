@@ -34,28 +34,44 @@ This creates:
 
 - one Ubuntu VM
 - one VM service account
-- public SSH access on the existing subnet
+- one reserved internal IP for the worker
+- optional cloud-init Tailscale enrollment
+- optional cloud-init `k3s-agent` install/join when `K3S_CLUSTER_TOKEN` is configured
 
 Important:
 
 - if your current subnet is `10.42.0.0/24`, stop and rebuild with a non-overlapping subnet such as `10.10.0.0/24`
 - `10.42.0.0/24` overlaps with the default k3s pod CIDR and breaks worker join
 
-## 2. Join the Worker to the Cluster
+## 2. Recommended Worker Join Path: Cloud-Init
 
-Run:
+The canonical path is now boot-time reconciliation through cloud-init, not a follow-up SSH join step.
+
+Set these values in `.env` before `worker.sh apply`:
 
 ```bash
-sh scripts/worker.sh join
+WORKER_INTERNAL_IP="10.10.0.3"
+TAILSCALE_ENABLE="true"
+TAILSCALE_WORKER_AUTH_KEY="..."
+TAILSCALE_WORKER_HOSTNAME="k3s-worker-1"
+TAILSCALE_ACCEPT_DNS="false"
+K3S_CLUSTER_TOKEN="..."
 ```
 
-That helper:
+Notes:
 
-- reads `.env`
-- discovers the server private IP
-- reads the node token from the server
-- copies `scripts/k3s_worker_setup.sh` to the worker VM
-- runs it on the worker
+- `WORKER_INTERNAL_IP` keeps the worker node address stable across recreation.
+- `TAILSCALE_WORKER_AUTH_KEY` should preferably be a dedicated ephemeral key.
+- `K3S_CLUSTER_TOKEN` is the stable shared cluster token used by the server and worker boot paths.
+
+With those values set, `sh scripts/worker.sh apply` should be enough for the worker to:
+
+- boot
+- join the tailnet
+- install/start `k3s-agent`
+- join the cluster
+
+without `worker.sh join`.
 
 ## 3. Verify the Worker
 
@@ -73,17 +89,53 @@ Expected result:
 - one worker node
 - both in `Ready` state
 
-## 4. Inspect the Worker Directly
+For worker boot debugging, check cloud-init first:
+
+```bash
+tailscale ssh "$SSH_USER@$TAILSCALE_WORKER_HOSTNAME" sudo cloud-init status --long
+tailscale ssh "$SSH_USER@$TAILSCALE_WORKER_HOSTNAME" sudo tail -200 /var/log/cloud-init-output.log
+tailscale ssh "$SSH_USER@$TAILSCALE_WORKER_HOSTNAME" sudo systemctl status k3s-agent --no-pager -l
+```
+
+## 4. Recovery Path: Manual Join Helper
+
+If you need to repair an existing worker manually, `worker.sh join` still exists as a fallback path.
+
+Run:
+
+```bash
+sh scripts/worker.sh join
+```
+
+That helper:
+
+- reads `.env`
+- discovers the server private IP
+- reads the node token from the server
+- copies `scripts/k3s_worker_setup.sh` to the worker VM
+- runs it on the worker
+- if `TAILSCALE_ENABLE=true`, also installs Tailscale and joins the worker to the tailnet
+
+This is now the recovery path, not the preferred day-one provisioning path.
+
+## 5. Inspect the Worker Directly
 
 If needed:
 
 ```bash
-gcloud compute ssh "$WORKER_NAME" --zone="$ZONE"
+tailscale ssh "$SSH_USER@$TAILSCALE_WORKER_HOSTNAME"
 sudo systemctl status k3s-agent --no-pager
 sudo journalctl -u k3s-agent -n 100 --no-pager
+tailscale status
 ```
 
-## 5. Destroy the Worker
+If Tailscale access is not available, fall back to:
+
+```bash
+gcloud compute ssh "$WORKER_NAME" --zone="$ZONE"
+```
+
+## 6. Destroy the Worker
 
 If you want to reset only the worker:
 

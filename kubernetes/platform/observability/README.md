@@ -13,6 +13,8 @@ Current design choices:
 - use Helm for third-party platform software
 - let Argo CD reconcile the chart releases from Git
 - keep the first logging path small and understandable
+- keep stateful and control-plane observability workloads on `k3s-server-1`
+- keep only per-node agents as DaemonSets across all nodes
 
 ## Components
 
@@ -24,6 +26,39 @@ Current design choices:
 
 - `dashboards/`
   Provisioned Grafana dashboards that are loaded through the Grafana dashboard sidecar.
+
+## Placement Policy
+
+The observability namespace is intentionally split by workload type:
+
+- pin stateful and control-plane workloads to `k3s-server-1`
+- keep only true per-node agents on every node
+
+Pinned to `k3s-server-1`:
+
+- Grafana
+- Alertmanager
+- Prometheus
+- Loki
+- MinIO
+- kube-state-metrics
+- Prometheus operator
+- Loki gateway
+
+Kept cluster-wide as DaemonSets:
+
+- Promtail
+- Prometheus node exporter
+- Loki canary
+
+Reason:
+
+- this cluster uses `local-path` storage for the first observability persistence layer
+- `local-path` is node-local disk
+- worker nodes are treated as more disposable than the server
+- stateful observability workloads on a disposable worker lose their backing paths on recreation
+
+So the practical rule is: keep observability persistence and control-plane behavior on the server, keep node agents per-node.
 
 ## Node Exporter
 

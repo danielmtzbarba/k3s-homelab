@@ -21,17 +21,21 @@ Use the wrappers in this order unless you are debugging a specific layer.
 5. `worker.sh apply`
    Create or reconcile the first worker VM.
 
-6. `worker.sh join`
-   Join the worker to the cluster.
+6. verify the worker boot path
+   Cloud-init should join the worker to Tailscale and k3s automatically when
+   `TAILSCALE_ENABLE=true` and `K3S_CLUSTER_TOKEN` are set in `.env`.
 
-7. `infra.sh platform-bootstrap`
+7. `worker.sh join`
+   Recovery path only. Use this when you need to repair an existing worker manually.
+
+8. `infra.sh platform-bootstrap`
    Reconcile the first platform layer:
    - cert-manager
    - Argo CD
    - Tailscale operator secret stack when `.gcp-secrets.env` exists
    - Tailscale Kubernetes Operator
 
-8. `website_rollout.sh`
+9. `website_rollout.sh`
    Deploy or update the website workload.
 
 ## Script Groups
@@ -42,7 +46,10 @@ Use the wrappers in this order unless you are debugging a specific layer.
   Main operator entrypoint for Terraform, cluster bootstrap, and platform bootstrap.
 
 - `worker.sh`
-  Worker infrastructure and join workflow.
+  Worker infrastructure and recovery workflow. The preferred path is boot-time
+  cloud-init reconciliation after `worker.sh apply`; `worker.sh join` remains the
+  manual repair path. If `TAILSCALE_ENABLE=true` in `.env`, the worker cloud-init
+  path and `worker.sh join` can both enroll the worker into the tailnet.
 
 ### VM Bootstrap
 
@@ -50,7 +57,7 @@ Use the wrappers in this order unless you are debugging a specific layer.
   VM-side setup for the first k3s server, including Tailscale and optional service-account issuer config.
 
 - `k3s_worker_setup.sh`
-  VM-side setup for a worker join.
+  VM-side setup for a worker join, with optional Tailscale enrollment.
 
 ### Access Helpers
 

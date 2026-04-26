@@ -7,6 +7,7 @@ Current purpose:
 - install Argo CD Image Updater in the `argocd` namespace
 - configure automatic image detection for the dev website app
 - keep production outside of image-driven auto-advance
+- keep the updater on `k3s-server-1` with the rest of the Argo control plane
 
 ## Current Layout
 

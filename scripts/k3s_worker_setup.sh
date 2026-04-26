@@ -16,6 +16,10 @@ fi
 
 : "${K3S_URL:?K3S_URL is required}"
 : "${K3S_TOKEN:?K3S_TOKEN is required}"
+TAILSCALE_ENABLE="${TAILSCALE_ENABLE:-false}"
+TAILSCALE_AUTH_KEY="${TAILSCALE_AUTH_KEY:-}"
+TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME:-}"
+TAILSCALE_ACCEPT_DNS="${TAILSCALE_ACCEPT_DNS:-false}"
 
 if ! command -v curl >/dev/null 2>&1 || ! command -v zsh >/dev/null 2>&1; then
   sudo apt-get update
@@ -44,6 +48,28 @@ sudo sh -c "cat > /etc/rancher/k3s/config.yaml <<EOF
 server: \"${K3S_URL}\"
 token: \"${K3S_TOKEN}\"
 EOF"
+
+if [ "${TAILSCALE_ENABLE}" = "true" ]; then
+  if [ -z "${TAILSCALE_AUTH_KEY}" ]; then
+    echo "TAILSCALE_ENABLE=true requires TAILSCALE_AUTH_KEY." >&2
+    exit 1
+  fi
+
+  TMP_TAILSCALE_INSTALL="$(mktemp)"
+  curl -fsSL https://tailscale.com/install.sh -o "${TMP_TAILSCALE_INSTALL}"
+  sudo sh "${TMP_TAILSCALE_INSTALL}"
+  rm -f "${TMP_TAILSCALE_INSTALL}"
+
+  sudo systemctl enable tailscaled
+  sudo systemctl start tailscaled
+
+  TAILSCALE_ARGS="--auth-key=${TAILSCALE_AUTH_KEY} --accept-dns=${TAILSCALE_ACCEPT_DNS}"
+  if [ -n "${TAILSCALE_HOSTNAME}" ]; then
+    TAILSCALE_ARGS="${TAILSCALE_ARGS} --hostname=${TAILSCALE_HOSTNAME}"
+  fi
+
+  sudo tailscale up ${TAILSCALE_ARGS}
+fi
 
 touch "${HOME}/.zshrc"
 
@@ -76,5 +102,8 @@ echo "Open a new SSH session to enter zsh by default."
 echo
 echo "Verification commands:"
 echo "  export TERM=xterm-256color"
+if [ "${TAILSCALE_ENABLE}" = "true" ]; then
+  echo "  tailscale status"
+fi
 echo "  sudo systemctl status k3s-agent --no-pager"
 echo "  sudo journalctl -u k3s-agent -n 100 --no-pager"

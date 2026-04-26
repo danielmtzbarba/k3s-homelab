@@ -30,6 +30,7 @@ TAILSCALE_ENABLE="${TAILSCALE_ENABLE:-false}"
 TAILSCALE_AUTH_KEY="${TAILSCALE_AUTH_KEY:-}"
 TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME:-}"
 TAILSCALE_ACCEPT_DNS="${TAILSCALE_ACCEPT_DNS:-false}"
+K3S_CLUSTER_TOKEN="${K3S_CLUSTER_TOKEN:-}"
 K8S_SERVICE_ACCOUNT_ISSUER_ENABLE="${K8S_SERVICE_ACCOUNT_ISSUER_ENABLE:-false}"
 K8S_SERVICE_ACCOUNT_ISSUER_URL="${K8S_SERVICE_ACCOUNT_ISSUER_URL:-}"
 K8S_SERVICE_ACCOUNT_JWKS_URI="${K8S_SERVICE_ACCOUNT_JWKS_URI:-}"
@@ -53,6 +54,12 @@ EOF"
 sudo sysctl --system >/dev/null
 
 sudo mkdir -p /etc/rancher/k3s/config.yaml.d
+
+if [ -n "${K3S_CLUSTER_TOKEN}" ]; then
+  sudo sh -c "cat > /etc/rancher/k3s/config.yaml.d/05-cluster-token.yaml <<EOF
+token: \"${K3S_CLUSTER_TOKEN}\"
+EOF"
+fi
 
 PUBLIC_IP="$(curl -fsS -H 'Metadata-Flavor: Google' \
   http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip || true)"

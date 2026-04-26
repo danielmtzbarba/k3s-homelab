@@ -16,6 +16,16 @@ Still left on the legacy VM layout for now:
 
 Both `quant-engine-dev` and `quant-engine-prod` currently share the namespace `quant-engine-mt5`, so every resource name in this package is environment-qualified. Shared namespace resources are owned by `quant-engine-shared/`.
 
+This package also includes a temporary legacy bridge for the still-external execution VM:
+
+- `Service/execution-vm`
+- `Endpoints/execution-vm`
+
+That preserves the old hostname contract used by the Docker Compose setup by routing:
+
+- `execution-vm:8000` -> legacy MT5 service
+- `execution-vm:8080` -> legacy sync service
+
 Before this package can run, you still need:
 
 - `quant-engine-shared` applied first so the namespace and `ghcr-pull-secret` already exist

@@ -24,9 +24,17 @@ require_cmd kubectl
 require_file "${KUBECONFIG_PATH}"
 
 export KUBECONFIG="${KUBECONFIG_PATH}"
+SERVER_NODE_SELECTOR_KEY="kubernetes.io/hostname"
+SERVER_NODE_SELECTOR_VALUE="k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal"
 
 echo "Installing Argo CD Image Updater into namespace ${ARGOCD_NAMESPACE}..."
 kubectl apply -n "${ARGOCD_NAMESPACE}" -f "${INSTALL_URL}"
+
+echo "Pinning Argo CD Image Updater to ${SERVER_NODE_SELECTOR_VALUE}..."
+kubectl patch deployment argocd-image-updater-controller \
+  -n "${ARGOCD_NAMESPACE}" \
+  --type merge \
+  -p "{\"spec\":{\"template\":{\"spec\":{\"nodeSelector\":{\"${SERVER_NODE_SELECTOR_KEY}\":\"${SERVER_NODE_SELECTOR_VALUE}\"}}}}}"
 
 echo "Waiting for Argo CD Image Updater controller..."
 kubectl rollout status deployment/argocd-image-updater-controller -n "${ARGOCD_NAMESPACE}" --timeout=300s

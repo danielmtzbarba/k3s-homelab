@@ -45,6 +45,10 @@ The repository currently supports:
   - k3s server setup
   - k3s worker join
   - shell and sysctl/module hardening required for k3s networking
+- cloud-init worker bootstrap for:
+  - reserved internal worker IP
+  - worker Tailscale join on boot
+  - worker `k3s-agent` join on boot when `K3S_CLUSTER_TOKEN` is configured
 - local operator wrappers for:
   - infra bootstrap/apply/destroy
   - server setup
@@ -62,6 +66,7 @@ The current cluster path has been validated end to end:
 - infrastructure provisioned by Terraform
 - server bootstrap automated through `infra.sh`
 - worker join automated through `worker.sh`
+- worker recreation validated through cloud-init bootstrap
 - website reachable over HTTPS
 - `www` redirecting to the apex domain
 - separate prod and dev website app paths
@@ -73,6 +78,7 @@ The current cluster path has been validated end to end:
 - **Flat, understandable Terraform layout** for backend bootstrap, server infra, and worker infra.
 - **Thin shell automation** around Terraform and cluster operations instead of burying everything in CI too early.
 - **k3s-specific node bootstrap** including required kernel modules, sysctls, `tls-san`, and shell setup.
+- **Cloud-init worker bootstrap** so recreated workers can rejoin Tailscale and k3s without SSH.
 - **Remote kubeconfig automation** for local cluster access after server creation.
 - **Cluster add-on deployment path** for cert-manager and shared issuer resources.
 - **Canonical app path** for the website workload with `kustomize` and TLS included.
@@ -115,7 +121,7 @@ These docs describe the repository as it exists today, not a future target archi
   Provisions the first GCP network and k3s server VM.
 
 - `infra/terraform/worker/`
-  Provisions the first worker VM on the same network.
+  Provisions the first worker VM on the same network, with cloud-init support for Tailscale and `k3s-agent` boot-time join.
 
 - `scripts/`
   Thin operator wrappers and VM bootstrap scripts for infrastructure, cluster access, platform bootstrap, and workload rollout. See [scripts/README.md](scripts/README.md).
@@ -152,7 +158,6 @@ sh scripts/infra.sh apply
 sh scripts/infra.sh server-setup
 sh scripts/infra.sh kubeconfig
 sh scripts/worker.sh apply
-sh scripts/worker.sh join
 sh scripts/infra.sh platform-bootstrap
 sh scripts/infra.sh deploy-addons
 sh scripts/infra.sh deploy-argocd
@@ -160,6 +165,14 @@ sh scripts/infra.sh deploy-image-updater
 sh scripts/infra.sh deploy-tailscale-operator
 sh scripts/check.sh
 ```
+
+Use `sh scripts/worker.sh join` only as a recovery path for an existing worker. The preferred worker path is now:
+
+- set `WORKER_INTERNAL_IP`
+- set `TAILSCALE_ENABLE=true`
+- set `TAILSCALE_WORKER_AUTH_KEY`
+- set `K3S_CLUSTER_TOKEN`
+- run `sh scripts/worker.sh apply`
 
 ## Current Scope
 

@@ -4,6 +4,8 @@ alertmanager:
     type: ClusterIP
   alertmanagerSpec:
     replicas: 1
+    nodeSelector:
+      kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
     storage:
       volumeClaimTemplate:
         spec:
@@ -22,6 +24,8 @@ grafana:
     existingSecret: grafana-admin-credentials
     userKey: admin-user
     passwordKey: admin-password
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
   service:
     type: ClusterIP
   sidecar:
@@ -58,12 +62,22 @@ kubeEtcd:
 kubeScheduler:
   enabled: false
 
+kube-state-metrics:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
+
+prometheusOperator:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
+
 prometheus:
   service:
     type: ClusterIP
   prometheusSpec:
     retention: 7d
     retentionSize: 15GB
+    nodeSelector:
+      kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
     resources:
       requests:
         cpu: 300m

@@ -24,6 +24,8 @@ deploymentMode: SingleBinary
 
 singleBinary:
   replicas: 1
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
   persistence:
     enabled: true
     size: 20Gi
@@ -36,6 +38,8 @@ singleBinary:
       memory: 2Gi
 
 gateway:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
   service:
     type: ClusterIP
 
@@ -47,6 +51,8 @@ resultsCache:
 
 minio:
   enabled: true
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
 
 backend:
   replicas: 0

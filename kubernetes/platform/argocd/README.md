@@ -52,6 +52,26 @@ sh scripts/infra.sh deploy-argocd
 
 That installs Argo CD with Helm into the `argocd` namespace and waits for the core pods to become ready.
 
+## Placement Policy
+
+The `argocd` namespace is treated as control-plane state and should stay on `k3s-server-1`.
+
+The current Helm values pin these Argo CD components to the server node:
+
+- application controller
+- applicationset controller
+- dex
+- notifications controller
+- redis
+- repo server
+- argocd server
+
+Reason:
+
+- Argo CD and Redis hold control-plane state and reconciliation behavior
+- the worker node is treated as more disposable than the server
+- keeping Argo CD on the server avoids moving control-plane state onto worker-local scheduling by accident
+
 ## Next Step
 
 After the install:

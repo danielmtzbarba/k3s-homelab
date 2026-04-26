@@ -1,6 +1,32 @@
 crds:
   install: true
 
+controller:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
+
+applicationSet:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
+
+dex:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
+
+notifications:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
+
+redis:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
+
+repoServer:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
+
 server:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
   service:
     type: ClusterIP
