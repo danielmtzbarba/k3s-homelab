@@ -267,8 +267,8 @@ run_platform_bootstrap() {
   echo "  1. cert-manager and shared issuer"
   echo "  2. Argo CD"
   echo "  3. External Secrets"
-  echo "  4. Argo CD secret stack, if GCP secret env files exist"
-  echo "  5. Tailscale operator secret stack, if GCP secret env files exist"
+  echo "  4. Tailscale operator secret stack, if GCP secret env files exist"
+  echo "  5. Argo CD secret stack, if GCP secret env files exist"
   echo "  6. Tailscale Kubernetes Operator"
   echo
 
@@ -277,6 +277,13 @@ run_platform_bootstrap() {
   run_bootstrap_external_secrets
 
   if has_gcp_secrets_env; then
+    if tailscale_secret_stack_ready; then
+      echo "Tailscale operator secret stack already configured; skipping GCP secret sync/bootstrap."
+    else
+      echo "Configuring Tailscale operator secret stack from configured GCP secret env source..."
+      run_tailscale_secret_stack
+    fi
+
     if argocd_secret_stack_ready; then
       echo "Argo CD secret stack already configured; skipping GCP secret sync/bootstrap."
     else
@@ -284,12 +291,6 @@ run_platform_bootstrap() {
       run_argocd_secret_stack
     fi
 
-    if tailscale_secret_stack_ready; then
-      echo "Tailscale operator secret stack already configured; skipping GCP secret sync/bootstrap."
-    else
-      echo "Configuring Tailscale operator secret stack from configured GCP secret env source..."
-      run_tailscale_secret_stack
-    fi
     run_deploy_tailscale_operator
   else
     echo "Skipping Tailscale operator bootstrap."

@@ -47,6 +47,24 @@ wait_for_secret() {
   done
 }
 
+wait_for_cluster_secret_store() {
+  ATTEMPTS=0
+
+  until kubectl get clustersecretstore gcp-secret-manager >/dev/null 2>&1; do
+    ATTEMPTS=$((ATTEMPTS + 1))
+    if [ "${ATTEMPTS}" -ge 36 ]; then
+      echo "Timed out waiting for ClusterSecretStore/gcp-secret-manager to exist." >&2
+      exit 1
+    fi
+    sleep 5
+  done
+
+  kubectl wait \
+    --for=jsonpath='{.status.conditions[?(@.type=="Ready")].status}'=True \
+    clustersecretstore/gcp-secret-manager \
+    --timeout=180s
+}
+
 require_cmd kubectl
 require_file "${KUBECONFIG_PATH}"
 require_file "${ENV_HELPER}"
@@ -63,6 +81,9 @@ export KUBECONFIG="${KUBECONFIG_PATH}"
 
 echo "Syncing Argo CD secrets to GCP Secret Manager..."
 sh "${ROOT_DIR}/scripts/sync_gcp_secrets.sh" "${GCP_SECRETS_ENV_FILE}"
+
+echo "Waiting for ClusterSecretStore gcp-secret-manager..."
+wait_for_cluster_secret_store
 
 echo "Ensuring namespace ${ARGOCD_NAMESPACE} exists..."
 kubectl create namespace "${ARGOCD_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -

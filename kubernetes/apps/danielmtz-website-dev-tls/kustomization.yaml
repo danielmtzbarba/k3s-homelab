@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: danielmtz-website-dev
 resources:
   - namespace.yaml
+  - ghcr-pull-secret-externalsecret.yaml
   - deployment.yaml
   - service.yaml
 images:

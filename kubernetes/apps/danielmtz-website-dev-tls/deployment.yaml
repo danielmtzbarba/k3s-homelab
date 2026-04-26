@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: danielmtz-website-dev
 spec:
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 3
   selector:
     matchLabels:

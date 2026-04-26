@@ -153,9 +153,13 @@ At this stage, you should have:
 - one worker
 - both nodes `Ready`
 
-## 7. Create The GHCR Pull Secret
+## 7. Verify The GHCR Pull Secret Path
 
-Because the website image lives in a private GHCR repository, create the namespace and pull secret first.
+Because the website image lives in a private GHCR repository, the namespace needs `ghcr-pull-secret`.
+
+The steady-state path is now declarative through:
+
+- `kubernetes/apps/danielmtz-website-prod-tls/ghcr-pull-secret-externalsecret.yaml`
 
 Create the namespace:
 
@@ -163,7 +167,13 @@ Create the namespace:
 kubectl apply -f kubernetes/apps/danielmtz-website-prod-tls/namespace.yaml
 ```
 
-Create the pull secret:
+Verify the `ExternalSecret` / secret:
+
+```bash
+kubectl get externalsecret,secret -n danielmtz-website-prod | grep ghcr-pull-secret
+```
+
+Manual fallback only if that path is broken:
 
 ```bash
 kubectl create secret docker-registry ghcr-pull-secret \
@@ -174,7 +184,7 @@ kubectl create secret docker-registry ghcr-pull-secret \
   --docker-email=YOUR_EMAIL
 ```
 
-If the secret already exists from a partial retry:
+If the secret already exists from a partial retry and you need to recreate it manually:
 
 ```bash
 kubectl delete secret ghcr-pull-secret -n danielmtz-website-prod

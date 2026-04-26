@@ -31,17 +31,29 @@ If you need to change it:
 sh scripts/set_website_image_tag.sh prod <image-tag>
 ```
 
-## 2. Create The GHCR Pull Secret
+## 2. Verify The GHCR Pull Secret Path
 
 Because the website repository is private, the cluster cannot pull the image anonymously.
 
-Create the namespace first:
+The steady-state path is now declarative:
+
+- `kubernetes/apps/danielmtz-website-prod-tls/ghcr-pull-secret-externalsecret.yaml`
+
+That `ExternalSecret` should recreate `ghcr-pull-secret` in `danielmtz-website-prod` from GCP Secret Manager during normal app sync.
+
+Create the namespace first only if you are debugging the app path outside the normal Argo/`kustomize` flow:
 
 ```bash
 kubectl apply -f kubernetes/apps/danielmtz-website-prod-tls/namespace.yaml
 ```
 
-Then create the GHCR image pull secret inside that namespace:
+Verify the secret exists:
+
+```bash
+kubectl get externalsecret,secret -n danielmtz-website-prod | grep ghcr-pull-secret
+```
+
+Manual fallback only if the secret path is broken:
 
 ```bash
 kubectl create secret docker-registry ghcr-pull-secret \
@@ -52,11 +64,7 @@ kubectl create secret docker-registry ghcr-pull-secret \
   --docker-email=YOUR_EMAIL
 ```
 
-Notes:
-
-- use a GitHub personal access token that can read packages
-- the deployment already references `ghcr-pull-secret`
-- do not commit the token or a generated secret manifest into the repository
+Use a GitHub personal access token that can read packages. Do not commit the token or a generated secret manifest into the repository.
 
 ## 3. Apply The Production Website App
 

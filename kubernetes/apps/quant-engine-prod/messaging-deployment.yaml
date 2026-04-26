@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/part-of: quant-engine
     environment: prod
 spec:
-  replicas: 2
+  replicas: 0
   revisionHistoryLimit: 3
   selector:
     matchLabels:
