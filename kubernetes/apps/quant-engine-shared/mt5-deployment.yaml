@@ -1,57 +1,57 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: quant-engine-prod-core
+  name: quant-engine-mt5-runtime
   namespace: quant-engine-mt5
   labels:
-    app.kubernetes.io/name: quant-engine-prod-core
+    app.kubernetes.io/name: quant-engine-mt5-runtime
     app.kubernetes.io/part-of: quant-engine
-    environment: prod
 spec:
-  replicas: 0
+  replicas: 1
   revisionHistoryLimit: 3
   selector:
     matchLabels:
-      app.kubernetes.io/name: quant-engine-prod-core
+      app.kubernetes.io/name: quant-engine-mt5-runtime
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: quant-engine-prod-core
+        app.kubernetes.io/name: quant-engine-mt5-runtime
         app.kubernetes.io/part-of: quant-engine
-        environment: prod
     spec:
       nodeSelector:
         kubernetes.io/hostname: k3s-worker-1
       imagePullSecrets:
         - name: ghcr-pull-secret
       containers:
-        - name: core-service
-          image: ghcr.io/danielmtzbarba/core_service
+        - name: mt5-service
+          image: ghcr.io/danielmtzbarba/mt5_service
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
-              containerPort: 8001
+              containerPort: 8000
+            - name: vnc
+              containerPort: 5900
           envFrom:
             - configMapRef:
-                name: quant-engine-prod-core-config
+                name: quant-engine-mt5-config
             - secretRef:
-                name: quant-engine-prod-core-secrets
+                name: quant-engine-mt5-secrets
           readinessProbe:
             httpGet:
-              path: /ready
+              path: /health
               port: http
-            initialDelaySeconds: 10
-            periodSeconds: 15
+            initialDelaySeconds: 60
+            periodSeconds: 20
           livenessProbe:
             httpGet:
-              path: /ready
+              path: /health
               port: http
-            initialDelaySeconds: 20
-            periodSeconds: 20
+            initialDelaySeconds: 120
+            periodSeconds: 30
           resources:
             requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
               cpu: 500m
-              memory: 256Mi
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi

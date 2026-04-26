@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quant-engine-mt5-config
+  namespace: quant-engine-mt5
+data:
+  MT5_PATH: "C:\\Program Files\\MetaTrader 5\\terminal64.exe"
+  MT5_GMT_OFFSET: "3"
+  MT5_STARTUP_DEBUG: "false"
+  WINEDEBUG: -all,err+all

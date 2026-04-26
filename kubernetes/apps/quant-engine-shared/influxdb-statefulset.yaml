@@ -18,6 +18,8 @@ spec:
         app.kubernetes.io/name: quant-engine-influxdb
         app.kubernetes.io/part-of: quant-engine
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: k3s-worker-1
       containers:
         - name: influxdb
           image: influxdb:2.7

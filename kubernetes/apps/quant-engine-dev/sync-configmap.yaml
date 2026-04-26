@@ -4,11 +4,13 @@ metadata:
   name: quant-engine-dev-sync-config
   namespace: quant-engine-mt5
 data:
-  SYNC_MT5_SERVICE_URL: http://quant-engine-mt5-api:8000
+  SYNC_MT5_SERVICE_URL: http://quant-engine-mt5-service:8000
   SYNC_CORE_SERVICE_URL: http://quant-engine-dev-core-service:8001
   SYNC_BACKEND_URL: http://quant-engine-dev-core-service:8001
   SYNC_MESSAGING_SERVICE_URL: http://quant-engine-dev-messaging-service:8003
   SYNC_INFLUX_URL: http://quant-engine-influxdb:8086
+  SYNC_INFLUX_ORG: danielmtz
+  SYNC_INFLUX_BUCKET: tradedb
   SYNC_MT5_READY_TIMEOUT_SECONDS: "300"
   SYNC_POSITION_SYNC_INTERVAL_SECONDS: "30"
   SYNC_STRATEGY_CATALOG_SYNC_INTERVAL_SECONDS: "3600"

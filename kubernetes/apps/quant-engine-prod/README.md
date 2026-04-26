@@ -21,8 +21,8 @@ Before this package can run, you still need:
 - GCP Secret Manager entries for the `ExternalSecret` keys in this package
 - real image tags in `kustomization.yaml`
 
-The temporary bridge to the still-external execution plane is provided by
-`quant-engine-shared/`:
+Internal service targets follow the same pattern as dev:
 
-- `quant-engine-mt5-api:8000` -> legacy MT5 service
-- `quant-engine-sync:8080` -> legacy sync service
+- `quant-engine-prod-core-service:8001`
+- `quant-engine-prod-sync-service:8080`
+- `quant-engine-mt5-service:8000`

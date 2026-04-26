@@ -16,6 +16,8 @@ spec:
       labels:
         app.kubernetes.io/name: danielmtz-website-prod
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: k3s-worker-2
       imagePullSecrets:
         - name: ghcr-pull-secret
       containers:

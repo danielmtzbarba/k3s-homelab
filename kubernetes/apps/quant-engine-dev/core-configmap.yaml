@@ -4,6 +4,6 @@ metadata:
   name: quant-engine-dev-core-config
   namespace: quant-engine-mt5
 data:
-  CORE_MT5_SERVICE_URL: http://quant-engine-mt5-api:8000
+  CORE_MT5_SERVICE_URL: http://quant-engine-mt5-service:8000
   CORE_MESSAGING_SERVICE_URL: http://quant-engine-dev-messaging-service:8003
   CORE_MAX_POSITIONS: "10"

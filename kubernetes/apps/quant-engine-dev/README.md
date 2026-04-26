@@ -16,19 +16,13 @@ Still left on the legacy VM layout for now:
 
 Both `quant-engine-dev` and `quant-engine-prod` currently share the namespace `quant-engine-mt5`, so every resource name in this package is environment-qualified. Shared namespace resources are owned by `quant-engine-shared/`.
 
-Shared namespace resources now provide temporary bridge services for the still-external
-execution plane:
-
-- `Service/quant-engine-mt5-api`
-- `Endpoints/quant-engine-mt5-api`
-
-That keeps stable in-cluster service names while routing:
-
-- `quant-engine-mt5-api:8000` -> legacy MT5 service
-
 `sync-service` now runs in-cluster and is addressed directly as:
 
 - `quant-engine-dev-sync-service:8080`
+
+`mt5-service` now runs in-cluster and is addressed directly as:
+
+- `quant-engine-mt5-service:8000`
 
 Before this package can run, you still need:
 
