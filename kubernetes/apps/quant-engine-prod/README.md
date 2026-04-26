@@ -19,5 +19,10 @@ Before this package can run, you still need:
 
 - `quant-engine-shared` applied first so the namespace and `ghcr-pull-secret` already exist
 - GCP Secret Manager entries for the `ExternalSecret` keys in this package
-- real values for the temporary external URLs that still point to the legacy execution plane
 - real image tags in `kustomization.yaml`
+
+The temporary bridge to the still-external execution plane is provided by
+`quant-engine-shared/`:
+
+- `quant-engine-mt5-api:8000` -> legacy MT5 service
+- `quant-engine-sync:8080` -> legacy sync service

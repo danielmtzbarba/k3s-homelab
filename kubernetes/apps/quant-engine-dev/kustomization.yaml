@@ -2,8 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: quant-engine-mt5
 resources:
-  - execution-vm-service.yaml
-  - execution-vm-endpoints.yaml
   - core-configmap.yaml
   - core-externalsecret.yaml
   - core-deployment.yaml
@@ -15,8 +13,15 @@ resources:
   - messaging-service.yaml
   - messaging-servicemonitor.yaml
   - messaging-ingress.yaml
+  - sync-configmap.yaml
+  - sync-externalsecret.yaml
+  - sync-deployment.yaml
+  - sync-service.yaml
+  - sync-servicemonitor.yaml
 images:
   - name: ghcr.io/danielmtzbarba/core_service
     newTag: 1741afff0ace1a0a08fa73bc7e368642954a23ba
   - name: ghcr.io/danielmtzbarba/messaging_service
     newTag: 1741afff0ace1a0a08fa73bc7e368642954a23ba
+  - name: ghcr.io/danielmtzbarba/sync_service
+    newTag: a39019f3f63ac18f0306b731a3c351e5f786ebcc

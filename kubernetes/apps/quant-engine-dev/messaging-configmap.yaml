@@ -5,7 +5,7 @@ metadata:
   namespace: quant-engine-mt5
 data:
   MSG_CORE_SERVICE_URL: http://quant-engine-dev-core-service:8001
-  MSG_SYNC_SERVICE_URL: http://execution-vm:8080
-  MSG_MT5_SERVICE_URL: http://execution-vm:8000
+  MSG_SYNC_SERVICE_URL: http://quant-engine-sync:8080
+  MSG_MT5_SERVICE_URL: http://quant-engine-mt5-api:8000
   MSG_WHATSAPP_URL: https://graph.facebook.com/v17.0/142601282278212/messages
   MSG_APP_URL: https://quant.danielmtzbarba.com

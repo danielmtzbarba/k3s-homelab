@@ -1,17 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: execution-vm
+  name: quant-engine-mt5-api
   namespace: quant-engine-mt5
   labels:
     app.kubernetes.io/part-of: quant-engine
-    environment: dev
-    app.kubernetes.io/component: legacy-bridge
+    app.kubernetes.io/component: mt5-bridge
 spec:
   ports:
     - name: mt5-api
       port: 8000
       targetPort: 8000
-    - name: sync-api
-      port: 8080
-      targetPort: 8080
