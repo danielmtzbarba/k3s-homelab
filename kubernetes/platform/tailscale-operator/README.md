@@ -9,6 +9,7 @@ Current intended use:
 
 - private HTTPS access to Grafana
 - private HTTPS access to Argo CD
+- private HTTPS access to the quant `core-service` admin panel
 - private HTTPS access to the quant `sync-service` dashboard
 
 Why this operator exists in this repo:
@@ -53,6 +54,7 @@ Official references:
 This repository currently adds:
 
 - private `Ingress` resources for Grafana and Argo CD using ingress class `tailscale`
+- private `Ingress` for the quant `core-service` admin panel using ingress class `tailscale`
 - private `Ingress` for the quant `sync-service` dashboard using ingress class `tailscale`
 - a `kustomization.yaml` so Argo CD can manage those private ingress resources from Git
 - a shell wrapper at `scripts/deploy_tailscale_operator.sh` for the credentialed Helm install
@@ -116,6 +118,7 @@ After that, Argo CD will reconcile:
 
 - `grafana-private`
 - `argocd-private`
+- `quant-core-private`
 - `quant-sync-private`
 
 through the `tailscale` ingress class.
