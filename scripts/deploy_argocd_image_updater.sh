@@ -22,6 +22,9 @@ require_file() {
 
 require_cmd kubectl
 require_file "${KUBECONFIG_PATH}"
+require_file "./kubernetes/platform/argocd-image-updater/image-updater-dev.yaml"
+require_file "./kubernetes/platform/argocd-image-updater/image-updater-quant-dev.yaml"
+require_file "./kubernetes/platform/argocd-image-updater/image-updater-quant-shared.yaml"
 
 export KUBECONFIG="${KUBECONFIG_PATH}"
 SERVER_NODE_SELECTOR_KEY="kubernetes.io/hostname"
@@ -39,14 +42,19 @@ kubectl patch deployment argocd-image-updater-controller \
 echo "Waiting for Argo CD Image Updater controller..."
 kubectl rollout status deployment/argocd-image-updater-controller -n "${ARGOCD_NAMESPACE}" --timeout=300s
 
+echo "Applying Argo CD Image Updater resources..."
+for resource in ./kubernetes/platform/argocd-image-updater/*.yaml; do
+  kubectl apply -f "${resource}"
+done
+
 echo
 echo "What this install does:"
 echo "  - installs Argo CD Image Updater in namespace ${ARGOCD_NAMESPACE}"
 echo "  - keeps the updater in the same namespace as Argo CD, which is the recommended path"
 echo "  - does not create Git write-back credentials"
 echo "  - does not create registry credentials"
-echo "  - does not apply any ImageUpdater resources yet"
+echo "  - applies the ImageUpdater resources from kubernetes/platform/argocd-image-updater/"
 echo
 echo "Next commands:"
 echo "  kubectl get pods -n ${ARGOCD_NAMESPACE} | grep argocd-image-updater"
-echo "  kubectl apply -f kubernetes/platform/argocd-image-updater/image-updater-dev.yaml"
+echo "  kubectl get imageupdaters -n ${ARGOCD_NAMESPACE}"
