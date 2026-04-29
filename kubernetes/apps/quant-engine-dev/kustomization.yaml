@@ -20,8 +20,8 @@ resources:
   - sync-servicemonitor.yaml
 images:
   - name: ghcr.io/danielmtzbarba/core_service
-    newTag: dev-dc277339e48cab43f0e96b0487434e3dbf33533b
+    newTag: dev-855ab9eeb0a665485075c5533435fc60f3888b87
   - name: ghcr.io/danielmtzbarba/messaging_service
-    newTag: dev-dc277339e48cab43f0e96b0487434e3dbf33533b
+    newTag: dev-855ab9eeb0a665485075c5533435fc60f3888b87
   - name: ghcr.io/danielmtzbarba/sync_service
-    newTag: dev-dc277339e48cab43f0e96b0487434e3dbf33533b
+    newTag: dev-855ab9eeb0a665485075c5533435fc60f3888b87
