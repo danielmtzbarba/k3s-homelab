@@ -14,4 +14,4 @@ resources:
   - mt5-deployment.yaml
 images:
   - name: ghcr.io/danielmtzbarba/mt5_service
-    newTag: dev-3b444962455e6c53b1fd13da2624bad77a280f30
+    newTag: dev-d2eec756365a2564fa97a6570a9b4f993d204578
