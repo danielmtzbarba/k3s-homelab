@@ -25,10 +25,14 @@ Options:
 Reads:
   <app-root>/infra/envs/core.env
   <app-root>/infra/envs/messaging.env
+  <app-root>/infra/envs/sync.env
+  <app-root>/infra/envs/mt5.env
 
 Bundles sensitive variables into:
   k3s-quant-engine-<env>-core-env
   k3s-quant-engine-<env>-messaging-env
+  k3s-quant-engine-<env>-sync-env
+  k3s-quant-engine-mt5-env
 
 Then uploads them through scripts/sync_gcp_secrets.sh.
 EOF
@@ -114,7 +118,9 @@ write_temp_env() {
   env_key_prefix="$1"
   core_json="$2"
   messaging_json="$3"
-  output_file="$4"
+  sync_json="$4"
+  mt5_json="$5"
+  output_file="$6"
 
   {
     printf 'PROJECT_ID="%s"\n' "${PROJECT_ID}"
@@ -125,6 +131,10 @@ write_temp_env() {
     printf "%s_CORE_ENV='%s'\n" "${env_key_prefix}" "${core_json}"
     printf 'GCP_SECRET_%s_MESSAGING_ENV="k3s-quant-engine-%s-messaging-env"\n' "${env_key_prefix}" "${ENVIRONMENT}"
     printf "%s_MESSAGING_ENV='%s'\n" "${env_key_prefix}" "${messaging_json}"
+    printf 'GCP_SECRET_%s_SYNC_ENV="k3s-quant-engine-%s-sync-env"\n' "${env_key_prefix}" "${ENVIRONMENT}"
+    printf "%s_SYNC_ENV='%s'\n" "${env_key_prefix}" "${sync_json}"
+    printf 'GCP_SECRET_QUANT_ENGINE_MT5_ENV="k3s-quant-engine-mt5-env"\n'
+    printf "QUANT_ENGINE_MT5_ENV='%s'\n" "${mt5_json}"
   } > "${output_file}"
 }
 
@@ -149,6 +159,8 @@ require_cmd python3
 require_file "${ENV_HELPER}"
 require_file "${APP_ROOT}/infra/envs/core.env"
 require_file "${APP_ROOT}/infra/envs/messaging.env"
+require_file "${APP_ROOT}/infra/envs/sync.env"
+require_file "${APP_ROOT}/infra/envs/mt5.env"
 
 # shellcheck disable=SC1090
 . "${ENV_HELPER}"
@@ -160,20 +172,28 @@ if [ -z "${PROJECT_ID:-}" ]; then
 fi
 
 load_env_file "${APP_ROOT}/infra/envs/core.env"
-CORE_JSON="$(json_bundle_from_env CORE_DATABASE_URL CORE_ADMIN_TOKEN)"
+CORE_JSON="$(json_bundle_from_env CORE_DATABASE_URL CORE_ADMIN_TOKEN CORE_SHARED_BROKER_ACCOUNT_NUMBER CORE_SHARED_BROKER_MT5_LOGIN CORE_SHARED_BROKER_SERVER_NAME)"
 
 load_env_file "${APP_ROOT}/infra/envs/messaging.env"
-MESSAGING_JSON="$(json_bundle_from_env MSG_WHATSAPP_API_TOKEN MSG_WHATSAPP_AUTH_TOKEN MSG_OPENAI_API_KEY)"
+MESSAGING_JSON="$(json_bundle_from_env MSG_WHATSAPP_URL MSG_WHATSAPP_API_TOKEN MSG_WHATSAPP_AUTH_TOKEN MSG_OPENAI_API_KEY)"
+
+load_env_file "${APP_ROOT}/infra/envs/sync.env"
+SYNC_JSON="$(json_bundle_from_env SYNC_CORE_ADMIN_TOKEN SYNC_MT5_LOGIN SYNC_INFLUX_TOKEN)"
+
+load_env_file "${APP_ROOT}/infra/envs/mt5.env"
+MT5_JSON="$(json_bundle_from_env MT5_LOGIN MT5_PASSWORD MT5_SERVER)"
 
 ENV_KEY_PREFIX="QUANT_ENGINE_$(printf '%s' "${ENVIRONMENT}" | tr '[:lower:]' '[:upper:]')"
 TMP_ENV_FILE="$(mktemp)"
 trap 'rm -f "${TMP_ENV_FILE}"' EXIT INT TERM
 
-write_temp_env "${ENV_KEY_PREFIX}" "${CORE_JSON}" "${MESSAGING_JSON}" "${TMP_ENV_FILE}"
+write_temp_env "${ENV_KEY_PREFIX}" "${CORE_JSON}" "${MESSAGING_JSON}" "${SYNC_JSON}" "${MT5_JSON}" "${TMP_ENV_FILE}"
 
 echo "Generated bundled quant-engine secrets for ${ENVIRONMENT} from:"
 echo "  ${APP_ROOT}/infra/envs/core.env"
 echo "  ${APP_ROOT}/infra/envs/messaging.env"
+echo "  ${APP_ROOT}/infra/envs/sync.env"
+echo "  ${APP_ROOT}/infra/envs/mt5.env"
 
 if [ "${RECREATE_EXISTING}" = "true" ]; then
   sh "${ROOT_DIR}/scripts/sync_gcp_secrets.sh" --delete-existing "${TMP_ENV_FILE}"

@@ -174,5 +174,7 @@ That reads:
 
 - `/home/danielmtz/Projects/algotrading/mt5-quant-server/infra/envs/core.env`
 - `/home/danielmtz/Projects/algotrading/mt5-quant-server/infra/envs/messaging.env`
+- `/home/danielmtz/Projects/algotrading/mt5-quant-server/infra/envs/sync.env`
+- `/home/danielmtz/Projects/algotrading/mt5-quant-server/infra/envs/mt5.env`
 
 bundles the sensitive values into one GCP secret per service and environment, and then materializes them into `quant-engine-mt5` through ESO.

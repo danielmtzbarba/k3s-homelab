@@ -9,8 +9,11 @@ ENV_HELPER="${ROOT_DIR}/scripts/lib_env.sh"
 
 SHARED_NAMESPACE_MANIFEST="${ROOT_DIR}/kubernetes/apps/quant-engine-shared/namespace.yaml"
 SHARED_GHCR_EXTERNAL_SECRET="${ROOT_DIR}/kubernetes/apps/quant-engine-shared/ghcr-pull-secret-externalsecret.yaml"
+SHARED_INFLUXDB_EXTERNAL_SECRET="${ROOT_DIR}/kubernetes/apps/quant-engine-shared/influxdb-externalsecret.yaml"
+SHARED_MT5_EXTERNAL_SECRET="${ROOT_DIR}/kubernetes/apps/quant-engine-shared/mt5-externalsecret.yaml"
 DEV_CORE_EXTERNAL_SECRET="${ROOT_DIR}/kubernetes/apps/quant-engine-dev/core-externalsecret.yaml"
 DEV_MESSAGING_EXTERNAL_SECRET="${ROOT_DIR}/kubernetes/apps/quant-engine-dev/messaging-externalsecret.yaml"
+DEV_SYNC_EXTERNAL_SECRET="${ROOT_DIR}/kubernetes/apps/quant-engine-dev/sync-externalsecret.yaml"
 
 PROD_CORE_EXTERNAL_SECRET="${ROOT_DIR}/kubernetes/apps/quant-engine-prod/core-externalsecret.yaml"
 PROD_MESSAGING_EXTERNAL_SECRET="${ROOT_DIR}/kubernetes/apps/quant-engine-prod/messaging-externalsecret.yaml"
@@ -34,8 +37,11 @@ require_file "${KUBECONFIG_PATH}"
 require_file "${ENV_HELPER}"
 require_file "${SHARED_NAMESPACE_MANIFEST}"
 require_file "${SHARED_GHCR_EXTERNAL_SECRET}"
+require_file "${SHARED_INFLUXDB_EXTERNAL_SECRET}"
+require_file "${SHARED_MT5_EXTERNAL_SECRET}"
 require_file "${DEV_CORE_EXTERNAL_SECRET}"
 require_file "${DEV_MESSAGING_EXTERNAL_SECRET}"
+require_file "${DEV_SYNC_EXTERNAL_SECRET}"
 require_file "${PROD_CORE_EXTERNAL_SECRET}"
 require_file "${PROD_MESSAGING_EXTERNAL_SECRET}"
 
@@ -49,10 +55,13 @@ kubectl apply -f "${SHARED_NAMESPACE_MANIFEST}"
 
 echo "Applying quant-engine shared ExternalSecrets..."
 kubectl apply -f "${SHARED_GHCR_EXTERNAL_SECRET}"
+kubectl apply -f "${SHARED_INFLUXDB_EXTERNAL_SECRET}"
+kubectl apply -f "${SHARED_MT5_EXTERNAL_SECRET}"
 
 echo "Applying quant-engine dev ExternalSecrets..."
 kubectl apply -f "${DEV_CORE_EXTERNAL_SECRET}"
 kubectl apply -f "${DEV_MESSAGING_EXTERNAL_SECRET}"
+kubectl apply -f "${DEV_SYNC_EXTERNAL_SECRET}"
 
 echo "Applying quant-engine prod ExternalSecrets..."
 kubectl apply -f "${PROD_CORE_EXTERNAL_SECRET}"
@@ -94,11 +103,50 @@ until kubectl get secret quant-engine-dev-messaging-secrets -n quant-engine-mt5 
   sleep 5
 done
 
+echo "Waiting for quant-engine dev sync secret to exist..."
+ATTEMPTS=0
+until kubectl get secret quant-engine-dev-sync-secrets -n quant-engine-mt5 >/dev/null 2>&1; do
+  ATTEMPTS=$((ATTEMPTS + 1))
+  if [ "${ATTEMPTS}" -ge 36 ]; then
+    echo "Timed out waiting for quant-engine-mt5/quant-engine-dev-sync-secrets." >&2
+    kubectl describe externalsecret quant-engine-dev-sync-secrets -n quant-engine-mt5 || true
+    exit 1
+  fi
+  sleep 5
+done
+
+echo "Waiting for quant-engine mt5 secret to exist..."
+ATTEMPTS=0
+until kubectl get secret quant-engine-mt5-secrets -n quant-engine-mt5 >/dev/null 2>&1; do
+  ATTEMPTS=$((ATTEMPTS + 1))
+  if [ "${ATTEMPTS}" -ge 36 ]; then
+    echo "Timed out waiting for quant-engine-mt5/quant-engine-mt5-secrets." >&2
+    kubectl describe externalsecret quant-engine-mt5-secrets -n quant-engine-mt5 || true
+    exit 1
+  fi
+  sleep 5
+done
+
+echo "Waiting for quant-engine influxdb secret to exist..."
+ATTEMPTS=0
+until kubectl get secret quant-engine-influxdb-secrets -n quant-engine-mt5 >/dev/null 2>&1; do
+  ATTEMPTS=$((ATTEMPTS + 1))
+  if [ "${ATTEMPTS}" -ge 36 ]; then
+    echo "Timed out waiting for quant-engine-mt5/quant-engine-influxdb-secrets." >&2
+    kubectl describe externalsecret quant-engine-influxdb-secrets -n quant-engine-mt5 || true
+    exit 1
+  fi
+  sleep 5
+done
+
 echo
 echo "Quant engine secret stack is configured."
 echo "Verification commands:"
 echo "  kubectl get secret -n quant-engine-mt5 ghcr-pull-secret"
 echo "  kubectl get secret -n quant-engine-mt5 quant-engine-dev-core-secrets"
 echo "  kubectl get secret -n quant-engine-mt5 quant-engine-dev-messaging-secrets"
+echo "  kubectl get secret -n quant-engine-mt5 quant-engine-dev-sync-secrets"
+echo "  kubectl get secret -n quant-engine-mt5 quant-engine-mt5-secrets"
+echo "  kubectl get secret -n quant-engine-mt5 quant-engine-influxdb-secrets"
 echo "  kubectl get secret -n quant-engine-mt5 quant-engine-prod-core-secrets"
 echo "  kubectl get secret -n quant-engine-mt5 quant-engine-prod-messaging-secrets"

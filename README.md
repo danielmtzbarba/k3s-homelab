@@ -28,6 +28,14 @@ The repository is intentionally opinionated around a simple progression:
 
 This repository is a clean base for understanding infrastructure, node bootstrap, cluster access, ingress, and HTTPS before moving real services onto Kubernetes.
 
+The MT5 quant application config has now been split into its own local companion repo:
+
+- `/home/danielmtz/Projects/kubernetes/quant-server-config`
+
+This repository remains the platform/home cluster repo. Quant workload manifests,
+quant-specific Argo resources, and quant-specific GCP secret sync helpers should now
+be treated as app-owned config in `quant-server-config`.
+
 ## Current Status
 
 The repository currently supports:
@@ -137,6 +145,9 @@ These docs describe the repository as it exists today, not a future target archi
 - `kubernetes/apps/`
   Canonical home for cluster application workloads such as `danielmtz-website-prod-tls` and `danielmtz-website-dev-tls`.
 
+  Quant application manifests are being migrated out of this repository into:
+  `/home/danielmtz/Projects/kubernetes/quant-server-config`
+
 - `kubernetes/platform/`
   Canonical home for cluster platform components such as cert-manager, issuer resources, and Argo CD scaffolding.
 
@@ -206,6 +217,11 @@ Planned next layers include:
 - centralized observability
 - stateful workloads
 - high-availability control planes
+
+For the quant stack specifically:
+
+- platform components stay here
+- app manifests and app-specific automation move to `quant-server-config`
 
 ## Current Constraints
 
