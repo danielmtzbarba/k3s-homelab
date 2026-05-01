@@ -38,7 +38,6 @@ Example `.env`:
 . "${K3S_HOMELAB_ROOT}/infra/envs/infra.terraform.env"
 . "${K3S_HOMELAB_ROOT}/infra/envs/gcp.platform.env"
 . "${K3S_HOMELAB_ROOT}/infra/envs/gcp.argocd.env"
-. "${K3S_HOMELAB_ROOT}/infra/envs/gcp.apps.env"
 ```
 
 The loaders export `K3S_HOMELAB_ROOT` automatically before sourcing env files.
@@ -54,8 +53,18 @@ cp infra/envs/infra.terraform.env.example infra/envs/infra.terraform.env
 
 cp infra/envs/gcp.platform.env.example infra/envs/gcp.platform.env
 cp infra/envs/gcp.argocd.env.example infra/envs/gcp.argocd.env
-cp infra/envs/gcp.apps.env.example infra/envs/gcp.apps.env
 ```
+
+Quant app-specific GCP env files now live in:
+
+- `/home/danielmtz/Projects/kubernetes/quant-server-config/infra/envs/`
+
+The restored `gcp.apps.env.example` in this repo now covers only the app secrets
+still owned by `k3s-homelab`, such as:
+
+- `argocd/ghcr-pull-secret`
+- `danielmtz-website-dev/ghcr-pull-secret`
+- `danielmtz-website-prod/ghcr-pull-secret`
 
 For multi-worker reconciliation, put either:
 

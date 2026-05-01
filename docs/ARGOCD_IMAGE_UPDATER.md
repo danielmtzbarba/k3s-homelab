@@ -46,13 +46,29 @@ It does apply the `ImageUpdater` resources from:
 
 - `kubernetes/platform/argocd-image-updater/`
 
+## Current Ownership
+
+The website dev updater is still owned by `k3s-homelab`.
+
+The quant updaters have been cut over to the app-owned config repo:
+
+- `/home/danielmtz/Projects/kubernetes/quant-server-config`
+
+That means:
+
+- live quant `Application` manifests should be applied from
+  `quant-server-config/argocd/applications/`
+- live quant `ImageUpdater` resources should be applied from
+  `quant-server-config/argocd/image-updaters/`
+- the old quant copies under `k3s-homelab` have been removed after cutover
+
 ## Dev Application Requirement
 
 The auto-advanced dev apps should be managed by:
 
 - `kubernetes/platform/argocd/applications/danielmtz-website-dev.yaml`
-- `kubernetes/platform/argocd/applications/quant-engine-dev.yaml`
-- `kubernetes/platform/argocd/applications/quant-engine-shared.yaml`
+- `/home/danielmtz/Projects/kubernetes/quant-server-config/argocd/applications/quant-engine-dev.yaml`
+- `/home/danielmtz/Projects/kubernetes/quant-server-config/argocd/applications/quant-engine-shared.yaml`
 
 Those apps should exist in Argo CD before you enable Image Updater for them.
 
@@ -61,8 +77,8 @@ Those apps should exist in Argo CD before you enable Image Updater for them.
 The updater resources live at:
 
 - `kubernetes/platform/argocd-image-updater/image-updater-dev.yaml`
-- `kubernetes/platform/argocd-image-updater/image-updater-quant-dev.yaml`
-- `kubernetes/platform/argocd-image-updater/image-updater-quant-shared.yaml`
+- `/home/danielmtz/Projects/kubernetes/quant-server-config/argocd/image-updaters/image-updater-quant-dev.yaml`
+- `/home/danielmtz/Projects/kubernetes/quant-server-config/argocd/image-updaters/image-updater-quant-shared.yaml`
 
 They are configured to:
 
@@ -80,8 +96,8 @@ They are configured to:
 - use `newest-build` for immutable dev tags
 - write the selected tag back to:
   - `kubernetes/apps/danielmtz-website-dev-tls`
-  - `kubernetes/apps/quant-engine-dev`
-  - `kubernetes/apps/quant-engine-shared`
+  - `/home/danielmtz/Projects/kubernetes/quant-server-config/kubernetes/apps/quant-engine-dev`
+  - `/home/danielmtz/Projects/kubernetes/quant-server-config/kubernetes/apps/quant-engine-shared`
 
 ## Quant Upstream Requirement
 
@@ -149,7 +165,7 @@ The dev workload can still keep its own `ghcr-pull-secret` in `danielmtz-website
 
 ### 2. Git Write-Back Access
 
-The current dev updater resource expects a secret at:
+The website updater in this repo expects a secret at:
 
 - `argocd/k3s-homelab-writeback`
 
@@ -181,6 +197,20 @@ kubectl create secret generic k3s-homelab-writeback \
   --from-literal=password=YOUR_GITHUB_TOKEN
 ```
 
+For the quant updaters in `quant-server-config`, the expected secret is:
+
+- `argocd/quant-server-config-writeback`
+
+with declarative manifest:
+
+- `/home/danielmtz/Projects/kubernetes/quant-server-config/argocd/externalsecret-quant-server-config-writeback.yaml`
+
+and repository:
+
+```yaml
+repository: "https://github.com/danielmtzbarba/quant-server-config.git"
+```
+
 ## Apply The Argo CD Applications
 
 Apply:
@@ -188,8 +218,9 @@ Apply:
 ```bash
 kubectl apply -f kubernetes/platform/argocd/applications/danielmtz-website-prod.yaml
 kubectl apply -f kubernetes/platform/argocd/applications/danielmtz-website-dev.yaml
-kubectl apply -f kubernetes/platform/argocd/applications/quant-engine-shared.yaml
-kubectl apply -f kubernetes/platform/argocd/applications/quant-engine-dev.yaml
+kubectl apply -f /home/danielmtz/Projects/kubernetes/quant-server-config/argocd/applications/quant-engine-shared.yaml
+kubectl apply -f /home/danielmtz/Projects/kubernetes/quant-server-config/argocd/applications/quant-engine-dev.yaml
+kubectl apply -f /home/danielmtz/Projects/kubernetes/quant-server-config/argocd/applications/quant-engine-prod.yaml
 ```
 
 Verify:
@@ -204,6 +235,13 @@ After the credentials exist, deploy the updater:
 
 ```bash
 sh scripts/infra.sh deploy-image-updater
+```
+
+Then apply the quant updater resources from the config repo:
+
+```bash
+kubectl apply -f /home/danielmtz/Projects/kubernetes/quant-server-config/argocd/image-updaters/image-updater-quant-dev.yaml
+kubectl apply -f /home/danielmtz/Projects/kubernetes/quant-server-config/argocd/image-updaters/image-updater-quant-shared.yaml
 ```
 
 Verify:
@@ -222,8 +260,8 @@ kubectl logs -n argocd deploy/argocd-image-updater-controller
 2. Image Updater detects the new image in GHCR
 3. Image Updater commits the updated image tag to one of:
    - `kubernetes/apps/danielmtz-website-dev-tls/kustomization.yaml`
-   - `kubernetes/apps/quant-engine-dev/kustomization.yaml`
-   - `kubernetes/apps/quant-engine-shared/kustomization.yaml`
+   - `/home/danielmtz/Projects/kubernetes/quant-server-config/kubernetes/apps/quant-engine-dev/kustomization.yaml`
+   - `/home/danielmtz/Projects/kubernetes/quant-server-config/kubernetes/apps/quant-engine-shared/kustomization.yaml`
 4. Argo CD sees the Git change
 5. Argo CD auto-syncs the dev application
 6. because the rendered Deployment image field changes to a new immutable tag, Kubernetes creates a new ReplicaSet and rolls out new pods for that image
@@ -233,6 +271,47 @@ kubectl logs -n argocd deploy/argocd-image-updater-controller
 This automation applies only to the dev workloads.
 
 Production should continue to use the PR-based flow.
+
+## Reusable Config Repo Pattern
+
+The quant stack is now the reference pattern for splitting app config out of the
+platform repo into a dedicated Argo-tracked config repo.
+
+Use this pattern when you want:
+
+- the platform repo to keep owning cluster services only
+- the app source repo to keep owning builds and image publishing
+- a separate config repo to own Kubernetes manifests, app secrets wiring, and
+  Argo CD Image Updater write-back
+
+Minimal shape:
+
+1. create a config repo with:
+   - `kubernetes/apps/<app-shared>/`
+   - `kubernetes/apps/<app-dev>/`
+   - `kubernetes/apps/<app-prod>/`
+   - `argocd/applications/`
+   - `argocd/image-updaters/`
+2. create an Argo repository secret for that repo
+3. create an Image Updater write-back secret for that repo
+4. point `Application.spec.source.repoURL` at the config repo
+5. point `ImageUpdater.spec.writeBackConfig.gitConfig.repository` at the same repo
+6. ensure the app image workflow publishes branch-aware immutable tags such as:
+   - `dev-<40-char-sha>`
+   - `prod-<40-char-sha>`
+
+The live working example is:
+
+- config repo:
+  `/home/danielmtz/Projects/kubernetes/quant-server-config`
+- Argo repo secret:
+  `/home/danielmtz/Projects/kubernetes/quant-server-config/argocd/externalsecret-repo-quant-server-config.yaml`
+- Image Updater write-back secret:
+  `/home/danielmtz/Projects/kubernetes/quant-server-config/argocd/externalsecret-quant-server-config-writeback.yaml`
+
+The full operator walkthrough for creating a config repo in this style now lives in:
+
+- `/home/danielmtz/Projects/kubernetes/quant-server-config/README.md`
 
 Sources:
 

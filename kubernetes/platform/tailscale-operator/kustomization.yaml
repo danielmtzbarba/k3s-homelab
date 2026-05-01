@@ -3,5 +3,3 @@ kind: Kustomization
 resources:
   - grafana-ingress.yaml
   - argocd-ingress.yaml
-  - quant-core-ingress.yaml
-  - quant-sync-ingress.yaml

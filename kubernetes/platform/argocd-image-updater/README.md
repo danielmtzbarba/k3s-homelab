@@ -13,10 +13,10 @@ Current purpose:
 
 - `image-updater-dev.yaml`
   Dev-only `ImageUpdater` resource for `danielmtz-website-dev`
-- `image-updater-quant-dev.yaml`
-  Dev-only `ImageUpdater` resource for `quant-engine-dev`
-- `image-updater-quant-shared.yaml`
-  Dev-only `ImageUpdater` resource for `quant-engine-shared`
+
+Quant `ImageUpdater` resources are now owned by:
+
+- `/home/danielmtz/Projects/kubernetes/quant-server-config/argocd/image-updaters`
 
 ## Current Model
 
@@ -39,6 +39,6 @@ repositories.
 The dev updaters need two kinds of access:
 
 - read access to the private GHCR image
-- write access to the `k3s-homelab` repository for Git write-back
+- write access to the owning Git repository for Git write-back
 
 Those credentials should be configured explicitly and kept separate from production release approval.

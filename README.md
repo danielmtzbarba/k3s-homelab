@@ -36,6 +36,12 @@ This repository remains the platform/home cluster repo. Quant workload manifests
 quant-specific Argo resources, and quant-specific GCP secret sync helpers should now
 be treated as app-owned config in `quant-server-config`.
 
+Current cutover note:
+
+- the live quant Argo CD `Application` manifests and quant Image Updater resources
+  should be applied from `quant-server-config`
+- the remaining quant copies in `k3s-homelab` are transitional until final cleanup
+
 ## Current Status
 
 The repository currently supports:
@@ -217,6 +223,10 @@ Planned next layers include:
 - centralized observability
 - stateful workloads
 - high-availability control planes
+
+For the quant stack specifically, the app-owned operational entrypoint is now:
+
+- `/home/danielmtz/Projects/kubernetes/quant-server-config/README.md`
 
 For the quant stack specifically:
 

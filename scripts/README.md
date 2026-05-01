@@ -115,13 +115,9 @@ Env source model:
   - apply the Tailscale `ExternalSecret`
   - wait for `tailscale/operator-oauth`
 
-- `setup_quant_engine_secret_stack.sh`
-  Syncs the quant-engine app secrets to GCP Secret Manager and materializes
-  the namespace `ExternalSecret` resources in `quant-engine-mt5`.
+Quant secret sync/bootstrap helpers now live in:
 
-- `sync_quant_engine_envs_to_gcp.sh`
-  Reads `mt5-quant-server/infra/envs/core.env` and `messaging.env`, bundles the
-  sensitive values per service and environment, and uploads them to GCP Secret Manager.
+- `/home/danielmtz/Projects/kubernetes/quant-server-config/scripts`
 
 ### Workload Operations
 

@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: quant-engine-mt5
-  labels:
-    app.kubernetes.io/part-of: quant-engine

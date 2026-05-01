@@ -78,6 +78,24 @@ load_env() {
   load_gcp_secrets_env "${SECRETS_ENV_FILE:-}"
 }
 
+mapping_vars_from_env_file() {
+  ENV_PATH="$1"
+  awk -F= '
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*$/ { next }
+    {
+      line = $0
+      sub(/^[[:space:]]*export[[:space:]]+/, "", line)
+      split(line, parts, "=")
+      key = parts[1]
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+      if (key ~ /^GCP_SECRET_[A-Z0-9_]+$/ && key != "GCP_SECRET_ACCESSORS") {
+        print key
+      }
+    }
+  ' "${ENV_PATH}" | sort -u
+}
+
 sync_secret() {
   MAPPING_VAR="$1"
   SECRET_ID="$(printenv "${MAPPING_VAR}")"
@@ -141,7 +159,12 @@ parse_args "$@"
 load_env
 require_env PROJECT_ID "${PROJECT_ID:-}"
 
-MAPPING_VARS="$(env | awk -F= '/^GCP_SECRET_[A-Z0-9_]+=/{print $1}' | grep -v '^GCP_SECRET_ACCESSORS$' | sort)"
+if [ -n "${SECRETS_ENV_FILE}" ]; then
+  require_file "${SECRETS_ENV_FILE}"
+  MAPPING_VARS="$(mapping_vars_from_env_file "${SECRETS_ENV_FILE}")"
+else
+  MAPPING_VARS="$(env | awk -F= '/^GCP_SECRET_[A-Z0-9_]+=/{print $1}' | grep -v '^GCP_SECRET_ACCESSORS$' | sort)"
+fi
 
 if [ -z "${MAPPING_VARS}" ]; then
   echo "No GCP_SECRET_* mappings found in ${SECRETS_ENV_FILE}" >&2

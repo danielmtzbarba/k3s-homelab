@@ -18,15 +18,16 @@ Current website applications:
 
 - `danielmtz-website-prod.yaml`
 - `danielmtz-website-dev.yaml`
-- `quant-engine-shared.yaml`
-- `quant-engine-prod.yaml`
-- `quant-engine-dev.yaml`
 - `external-secrets.yaml`
 - `observability-kube-prometheus-stack.yaml`
 - `observability-loki.yaml`
 - `observability-promtail.yaml`
 - `observability-dashboards.yaml`
 - `tailscale-private-access.yaml`
+
+Quant Argo `Application` manifests are now owned by:
+
+- `/home/danielmtz/Projects/kubernetes/quant-server-config/argocd/applications`
 
 Recommendation:
 
