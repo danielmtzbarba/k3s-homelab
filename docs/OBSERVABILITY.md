@@ -136,6 +136,7 @@ The observability package also provisions `quant-engine` dashboards for the firs
 - `Quant Engine Messaging Flow`
 
 These dashboards use Prometheus for service metrics and Loki for log panels.
+They are app-owned and should now live in the quant config repository, not the platform repo.
 
 ## Apply Path
 

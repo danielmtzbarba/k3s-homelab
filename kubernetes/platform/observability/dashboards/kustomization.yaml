@@ -4,4 +4,3 @@ namespace: observability
 
 resources:
   - k3s-cluster
-  - quant-app
