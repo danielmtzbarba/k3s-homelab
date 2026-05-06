@@ -26,6 +26,9 @@ Current design choices:
 
 - `dashboards/`
   Provisioned Grafana dashboards that are loaded through the Grafana dashboard sidecar.
+  Dashboards are grouped into Grafana folders by subdirectory:
+  - `dashboards/k3s-cluster/`
+  - `dashboards/quant-app/`
 
 ## Placement Policy
 

@@ -100,6 +100,7 @@ This repository now uses:
 
 - `kubernetes/platform/observability/dashboards/`
   Kustomize-generated ConfigMaps labeled with `grafana_dashboard=1`
+  and grouped into Grafana folders from the Git directory structure
 
 - `kubernetes/platform/argocd/applications/observability-dashboards.yaml`
   Argo CD application for the provisioned dashboards path

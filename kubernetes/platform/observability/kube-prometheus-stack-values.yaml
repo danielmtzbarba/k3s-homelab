@@ -34,6 +34,9 @@ grafana:
       label: grafana_dashboard
       labelValue: "1"
       searchNamespace: observability
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
   persistence:
     enabled: true
     size: 10Gi
