@@ -12,6 +12,6 @@ generatorOptions:
     grafana_folder: k3s-cluster
 
 configMapGenerator:
-  - name: k3s-cluster-overview-dashboard
+  - name: k3s-operations-summary-dashboard
     files:
       - k3s-cluster-overview.json

@@ -105,10 +105,10 @@ This repository now uses:
 - `kubernetes/platform/argocd/applications/observability-dashboards.yaml`
   Argo CD application for the provisioned dashboards path
 
-The first dashboard is:
+The main cluster dashboard is:
 
-- `K3s Cluster Overview`
-  Focused on node health, resource pressure, pod scheduling, and restart signals for the server and worker nodes
+- `K3s Operations Summary`
+  Focused on high-signal operational data: node and pod health, alert pressure, cluster capacity, namespace hotspots, API server behavior, and CoreDNS behavior
 
 Grafana also uses:
 
@@ -127,6 +127,8 @@ Alerting uses:
 
 - `kubernetes/platform/observability/externalsecret-alertmanager-slack-webhook.yaml`
   ESO-managed Slack webhook secret for Alertmanager
+
+To keep Grafana focused on operator-facing dashboards, the default vendor dashboards from `kube-prometheus-stack` are disabled and replaced by the custom summary dashboard above.
 
 The observability package also provisions `quant-engine` dashboards for the first migrated app slice:
 

@@ -19,11 +19,14 @@ alertmanager:
         alertmanagerConfig: platform
 
 grafana:
+  defaultDashboardsEnabled: false
   defaultDashboardsTimezone: utc
   admin:
     existingSecret: grafana-admin-credentials
     userKey: admin-user
     passwordKey: admin-password
+  initChownData:
+    enabled: false
   nodeSelector:
     kubernetes.io/hostname: k3s-server-1.europe-west3-a.c.k3s-homelab-danielmtz.internal
   service:

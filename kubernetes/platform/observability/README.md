@@ -15,6 +15,7 @@ Current design choices:
 - keep the first logging path small and understandable
 - keep stateful and control-plane observability workloads on `k3s-server-1`
 - keep only per-node agents as DaemonSets across all nodes
+- keep Grafana centered on custom operational dashboards by disabling the noisy default vendor dashboards
 
 ## Components
 
