@@ -29,7 +29,25 @@ Current design choices:
   Provisioned Grafana dashboards that are loaded through the Grafana dashboard sidecar.
   Dashboards are grouped into Grafana folders by subdirectory:
   - `dashboards/k3s-cluster/`
-  - `dashboards/quant-app/`
+  - quant-owned dashboards from the separate `quant-server-config` repo land in:
+    - `quant-dev`
+    - `quant-prod`
+    - `quant-platform`
+
+## Current Log Labeling
+
+Promtail forwards Kubernetes pod logs into Loki and promotes common pod metadata into Loki labels.
+
+Current useful labels for quant workloads include:
+
+- `namespace`
+- `pod`
+- `container`
+- `node_name`
+- `app`
+- `environment`
+
+The `environment` label is sourced from the pod label of the same name, so quant workloads must carry `environment: dev`, `environment: prod`, or `environment: shared` on their pod templates for clean Loki filtering.
 
 ## Placement Policy
 
