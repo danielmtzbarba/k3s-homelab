@@ -8,4 +8,4 @@ resources:
   - service.yaml
 images:
   - name: ghcr.io/danielmtzbarba/danielmtz-website
-    newTag: dev-d2a4da875b4cb3421baa57b23460361c2a4d5aaf
+    newTag: dev-d05a4ad5d07ef042b592c0a46a05bdebc1ead502
